@@ -1,0 +1,4 @@
+github.com/rinor/jorcli v0.0.0-20200506111544-2c24740b4d6b h1:KpQzXc89cpl01dIyml/v342mJMHzVnFm0QhpCKh3QD8=
+github.com/rinor/jorcli v0.0.0-20200506111544-2c24740b4d6b/go.mod h1:g0H93swQYhOXMd0PTL7EQOwkGTLGhtCjJ/HM+d1jKZY=
+github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086 h1:RYiqpb2ii2Z6J4x0wxK46kvPBbFuZcdhS+CIztmYgZs=
+github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086/go.mod h1:PLPIyL7ikehBD1OAjmKKiOEhbvWyHGaNDjquXMcYABo=
