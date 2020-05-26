@@ -31,11 +31,11 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+    wrap_in_directory: true
     files:
       - README.md
-      - assets/proposals.csv
-      - assets/fund.csv
-      - jor_bins/Readme.md
+      - assets/*
+      - jor_bins/*
 
 checksum:
   name_template: 'checksums.txt'
