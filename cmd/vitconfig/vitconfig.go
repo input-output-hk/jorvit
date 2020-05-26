@@ -3,6 +3,8 @@
 package main
 
 import (
+	"encoding/hex"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,11 +14,45 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/input-output-hk/jorvit/internal/datastore"
 	"github.com/input-output-hk/jorvit/internal/kit"
+	"github.com/input-output-hk/jorvit/internal/loader"
 	"github.com/input-output-hk/jorvit/internal/wallet"
+	"github.com/input-output-hk/jorvit/internal/webproxy"
 	"github.com/rinor/jorcli/jcli"
 	"github.com/rinor/jorcli/jnode"
 	"github.com/skip2/go-qrcode"
+	"golang.org/x/crypto/blake2b"
+)
+
+type ChainVotePlan struct {
+	VotePlanID   string
+	VoteStart    ChainTime
+	VoteEnd      ChainTime
+	CommitteeEnd ChainTime
+	Certificate  string
+	proposalID   []string
+}
+
+type ChainTime struct {
+	epoch int
+	slot  int
+}
+
+func (ct *ChainTime) String() string {
+	return strconv.Itoa(ct.epoch) + "." + strconv.Itoa(ct.slot)
+}
+
+func (ct *ChainTime) ToSeconds(SlotDuration, SlotsPerEpoch int) int64 {
+	epochDuration := SlotDuration * SlotsPerEpoch
+	return int64(ct.epoch*epochDuration + ct.slot*SlotDuration)
+}
+
+var (
+	votePlanProposalsMax = 10
+	voteStart            = ChainTime{0, 0}
+	voteEnd              = ChainTime{5, 0}
+	committeeEnd         = ChainTime{10, 0}
 )
 
 var (
@@ -24,14 +60,54 @@ var (
 	wallets  = wallet.SampleWallets()
 )
 
+var (
+	proposals datastore.ProposalsStore
+)
+
+func timeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	log.Printf("%s took %s", name, elapsed)
+}
+
+func loadProposals(file string) error {
+	defer timeTrack(time.Now(), "Proposals File load")
+	proposals = &datastore.Proposals{}
+	return proposals.Initialize(file)
+}
+
 func main() {
 	var (
+		proxyAddrPort = flag.String("proxy", "0.0.0.0:8000", "Address where REST api PROXY should listen in IP:PORT format")
+		restAddrPort  = flag.String("rest", "0.0.0.0:8001", "Address where Jörmungandr REST api should listen in IP:PORT format")
+		nodePort      = flag.Uint("node", 9001, "PORT where Jörmungandr node should listen")
+		proposalsPath = flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
+	)
+
+	flag.Parse()
+
+	if *proxyAddrPort == "" || *restAddrPort == "" || *nodePort == 0 || *proposalsPath == "" {
+		flag.Usage()
+	}
+	err := loadProposals(*proposalsPath)
+	kit.FatalOn(err, "loadProposals")
+
+	var (
+
+		// Proxy
+		// proxyAddr, proxyPort = "0.0.0.0", 8000
+		// proxyAddress         = proxyAddr + ":" + strconv.Itoa(proxyPort)
+
+		proxyAddress = *proxyAddrPort
+
 		// Rest
-		restAddr, restPort = "0.0.0.0", 8001
-		restAddress        = restAddr + ":" + strconv.Itoa(restPort)
+		// restAddr, restPort = "0.0.0.0", 8001
+		// restAddress        = restAddr + ":" + strconv.Itoa(restPort)
+
+		restAddress = *restAddrPort
+
 		// P2P
 		p2pIPver, p2pProto           = "ip4", "tcp"
-		p2pListenAddr, p2pListenPort = "127.0.0.11", 9001
+		p2pListenAddr, p2pListenPort = "127.0.0.11", int(*nodePort) // 9001
 		p2pListenAddress             = "/" + p2pIPver + "/" + p2pListenAddr + "/" + p2pProto + "/" + strconv.Itoa(p2pListenPort)
 
 		// General
@@ -69,6 +145,7 @@ func main() {
 	log.Printf("Working Directory: %s", workingDir)
 
 	/* BFT LEADER */
+	// TODO: build a loader once provided
 	leaderPK, err := jcli.KeyToPublic(leaderSK, "", "")
 	kit.FatalOn(err, kit.B2S(leaderPK))
 
@@ -84,7 +161,7 @@ func main() {
 	}
 
 	// set/change config params
-	block0cfg.BlockchainConfiguration.Block0Date = block0Date()
+	block0cfg.BlockchainConfiguration.Block0Date = time.Now().Unix() // block0Date()
 	block0cfg.BlockchainConfiguration.Block0Consensus = consensus
 	block0cfg.BlockchainConfiguration.Discrimination = block0Discrimination
 
@@ -99,6 +176,10 @@ func main() {
 	err = block0cfg.AddConsensusLeader(kit.B2S(leaderPK))
 	kit.FatalOn(err)
 
+	// Committee list - TODO: build a loader once defined/provided
+	block0cfg.AddCommittee("7ef044ba437057d6d944ace679b7f811335639a689064cd969dffc8b55a7cc19")
+	block0cfg.AddCommittee("f5285eeead8b5885a1420800de14b0d1960db1a990a6c2f7b517125bedc000db")
+
 	// add legacy funds
 	for i := range wallets {
 		wallets[i].Totals = 0
@@ -106,6 +187,93 @@ func main() {
 			err = block0cfg.AddInitialLegacyFund(lf.Address, lf.Value)
 			kit.FatalOn(err)
 			wallets[i].Totals += lf.Value
+		}
+	}
+
+	// Total nr of proposals
+	proposalsTot := proposals.Total()
+
+	// Calculate nr of needed voteplans since there is a limit of proposals a plan can have (255)
+	votePlansNeeded := votePlansNeeded(proposalsTot, votePlanProposalsMax)
+	var votePlans = make([]ChainVotePlan, votePlansNeeded)
+
+	// Generate proposals hash and associate it to a voteplan
+	for i, proposal := range *proposals.All() {
+		// retrieve the voteplan intenal idx based on the proposal idx we are at
+		vpIdx := votePlanIndex(i, votePlanProposalsMax)
+
+		// hash the proposal (TODO: decide what to hash in production)
+		id := blake2b.Sum256([]byte(proposal.Proposal.ID + proposal.InternalID))
+		proposal.ChainProposal.ExternalID = hex.EncodeToString(id[:])
+
+		// add proposal hash to the respective voteplan internal container
+		votePlans[vpIdx].proposalID = append(votePlans[vpIdx].proposalID, proposal.ChainProposal.ExternalID)
+		/*
+			// We could insert also here, but do it later when we have also VotePlanID
+			proposal.ChainVotePlan.VoteStart = voteStart
+			proposal.ChainVotePlan.VoteEnd = voteEnd
+			proposal.ChainVotePlan.CommitteeEnd = committeeEnd
+			proposal.ChainProposal.Index = uint8(len(votePlans[vpIdx].proposalID))
+		*/
+	}
+
+	// Generate voteplan certificates and id
+	for i := range votePlans {
+		votePlans[i].VoteStart = voteStart
+		votePlans[i].VoteEnd = voteEnd
+		votePlans[i].CommitteeEnd = committeeEnd
+
+		cert, err := jcli.CertificateNewVotePlan(
+			votePlans[i].VoteStart.String(),
+			votePlans[i].VoteEnd.String(),
+			votePlans[i].CommitteeEnd.String(),
+			votePlans[i].proposalID,
+			"",
+		)
+		kit.FatalOn(err, "CertificateNewVotePlan")
+
+		id, err := jcli.CertificateGetVotePlanID(cert, "", "")
+		kit.FatalOn(err, "CertificateGetVotePlanID")
+
+		// convert cert hrp to signedcert (TODO: tmp until node is fixed)
+		cert, err = jcli.UtilsBech32Convert(kit.B2S(cert), "signedcert")
+		kit.FatalOn(err, "UtilsBech32Convert")
+
+		votePlans[i].Certificate = kit.B2S(cert)
+		votePlans[i].VotePlanID = kit.B2S(id)
+
+		// Vote Plans add certificate to block0
+		err = block0cfg.AddInitialCertificate(votePlans[i].Certificate)
+		kit.FatalOn(err, "AddInitialCertificate")
+
+		voteStartUnix := votePlans[i].VoteStart.ToSeconds(
+			int(block0cfg.BlockchainConfiguration.SlotDuration),
+			int(block0cfg.BlockchainConfiguration.SlotsPerEpoch),
+		) + block0cfg.BlockchainConfiguration.Block0Date
+
+		voteEndUnix := votePlans[i].VoteEnd.ToSeconds(
+			int(block0cfg.BlockchainConfiguration.SlotDuration),
+			int(block0cfg.BlockchainConfiguration.SlotsPerEpoch),
+		) + block0cfg.BlockchainConfiguration.Block0Date
+
+		committeeEndUnix := votePlans[i].CommitteeEnd.ToSeconds(
+			int(block0cfg.BlockchainConfiguration.SlotDuration),
+			int(block0cfg.BlockchainConfiguration.SlotsPerEpoch),
+		) + block0cfg.BlockchainConfiguration.Block0Date
+
+		for pi, propHash := range votePlans[i].proposalID {
+			// TODO: fix this search
+			proposal := datastore.FilterSingle(proposals.All(), func(v *loader.ProposalData) bool {
+				return v.ChainProposal.ExternalID == propHash
+			})
+
+			proposal.ChainVotePlan.VotePlanID = votePlans[i].VotePlanID
+			proposal.ChainProposal.Index = uint8(pi)
+
+			proposal.ChainVotePlan.VoteStart = time.Unix(voteStartUnix, 0).String()       // strconv.FormatInt(voteStartUnix, 10)
+			proposal.ChainVotePlan.VoteEnd = time.Unix(voteEndUnix, 0).String()           // strconv.FormatInt(voteEndUnix, 10)
+			proposal.ChainVotePlan.CommitteeEnd = time.Unix(committeeEndUnix, 0).String() // strconv.FormatInt(committeeEndUnix, 10)
+
 		}
 	}
 
@@ -125,9 +293,16 @@ func main() {
 	block0Hash, err := jcli.GenesisHash(block0Bin, "")
 	kit.FatalOn(err, kit.B2S(block0Hash))
 
-	// block0TxtFile will be created by jcli
+	// block0TxtFile will be created by jcli - it fails for now due to the voteplan cert hack
 	block0Txt, err := jcli.GenesisDecode(block0Bin, "", block0TxtFile)
-	kit.FatalOn(err, kit.B2S(block0Txt))
+	_ = block0Txt
+	// kit.FatalOn(err, kit.B2S(block0Txt))
+
+	// TODO: remove once proper voteplan cert inside genesis is implemented
+	if err != nil {
+		err = ioutil.WriteFile(block0TxtFile, block0Yaml, 0755)
+		kit.FatalOn(err)
+	}
 
 	//////////////////////
 	//  secrets config  //
@@ -183,17 +358,6 @@ func main() {
 	node.Stderr, err = os.Create(filepath.Join(workingDir, "stderr.log"))
 	kit.FatalOn(err)
 
-	// JSON
-	// walletsJson, err := json.Marshal(&wallets)
-	// fatalOn(err, "json.Marshall - wallets")
-	// var jsonWallets []wallet.Wallet
-	// err = json.Unmarshal(walletsJson, &jsonWallets)
-	// fatalOn(err, "json.Unmarshal - wallets")
-	// fmt.Printf("%s", walletsJson)
-	// qrPrint(jsonWallets)
-
-	// return
-
 	// Run the node (Start + Wait)
 	err = os.Setenv("RUST_BACKTRACE", "full")
 	kit.FatalOn(err, "Failed to set env (RUST_BACKTRACE=full)")
@@ -202,6 +366,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("node.Run FAILED: %v", err)
 	}
+
+	go func() {
+		err := webproxy.Run(proposals, proxyAddress, "http://"+restAddress)
+		if err != nil {
+			kit.FatalOn(err, "Proxy Run")
+		}
+	}()
 
 	log.Println()
 	log.Printf("OS: %s, ARCH: %s", runtime.GOOS, runtime.GOARCH)
@@ -214,15 +385,19 @@ func main() {
 	log.Println()
 	log.Printf("VIT - BFT Genesis Hash: %s\n", kit.B2S(block0Hash))
 	log.Println()
-	log.Printf("VIT - BFT Genesis: %s", "NO COMMITTEE - YET")
-	log.Printf("VIT - BFT Genesis: %s", "NO VOTEPLANS - YET")
+	log.Printf("VIT - BFT Genesis: %s - %d", "COMMITTEE", len(block0cfg.BlockchainConfiguration.Committees))
+	log.Printf("VIT - BFT Genesis: %s - %d", "VOTEPLANS", len(votePlans))
+	log.Printf("VIT - BFT Genesis: %s - %d", "PROPOSALS", proposals.Total())
 	log.Println()
 	log.Printf("VIT - BFT Genesis: %s", "Wallets available for recovery")
 
 	qrPrint(wallets)
 
 	log.Println()
-	log.Printf("Rest API available at: http://%s/api", restAddress)
+	log.Printf("JÖRMUNGANDR listening at: %s", p2pListenAddress)
+	log.Printf("JÖRMUNGANDR Rest API available at: http://%s/api", restAddress)
+	log.Println()
+	log.Printf("APP - PROXY Rest API available at: http://%s/api", proxyAddress)
 	log.Println()
 	log.Println("VIT - BFT Genesis Node - Running...")
 	node.Wait()                                     // Wait for the node to stop.
@@ -247,4 +422,16 @@ func block0Date() int64 {
 		return time.Now().Unix()
 	}
 	return block0Date.Unix()
+}
+
+func votePlanIndex(i int, max int) int {
+	return i / max
+}
+
+func votePlansNeeded(proposalsTot int, max int) int {
+	votePlansNeeded, more := proposalsTot/max, proposalsTot%max
+	if more > 0 {
+		votePlansNeeded = votePlansNeeded + 1
+	}
+	return votePlansNeeded
 }

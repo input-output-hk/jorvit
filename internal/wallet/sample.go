@@ -1,6 +1,8 @@
 package wallet
 
-import "github.com/rinor/jorcli/jnode"
+import (
+	"github.com/rinor/jorcli/jnode"
+)
 
 func SampleWallets() []Wallet {
 	return []Wallet{
@@ -66,21 +68,6 @@ func SampleWallets() []Wallet {
 				},
 			},
 		},
-		{
-			Note:      "DAEDALUS-PAPER",
-			Mnemonics: "town lift more follow chronic lunch weird uniform earth census proof cave gap fancy topic year leader phrase state circle cloth reward dish survey act punch bounce",
-			Funds: []jnode.InitialFund{
-				{
-					Address: "DdzFFzCqrhtCvPjBLTJKJdNWzfhnJx3967QEcuhhm1PQ2ca13fNNMh5KZentH5aWLysjEBc1rKDYMS3noNKNyxdCL8NHUZznZj9gofQJ",
-					Value:   40_000,
-				},
-			},
-		},
-	}
-}
-
-func SampleWalletPaper() []Wallet {
-	return []Wallet{
 		{
 			Note:      "DAEDALUS-PAPER",
 			Mnemonics: "town lift more follow chronic lunch weird uniform earth census proof cave gap fancy topic year leader phrase state circle cloth reward dish survey act punch bounce",
