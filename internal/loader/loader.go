@@ -63,3 +63,20 @@ func LoadData(r io.Reader) (*[]*ProposalData, error) {
 	err := gocsv.Unmarshal(r, &proposals)
 	return &proposals, err
 }
+
+type FundData struct {
+	Name            string          `json:"fund_name"            csv:"fund_name"`
+	Goal            string          `json:"fund_goal"            csv:"fund_goal"`
+	VotingPowerInfo string          `json:"voting_power_info"    csv:"voting_power_info"`
+	RewardsInfo     string          `json:"rewards_info"         csv:"rewards_info"`
+	StartTime       string          `json:"fund_start_time"      csv:"fund_start_time"`
+	EndTime         string          `json:"fund_end_time"        csv:"fund_end_time"`
+	NextStartTime   string          `json:"next_fund_start_time" csv:"next_fund_start_time"`
+	Voteplans       []ChainVotePlan `json:"chain_vote_plans"`
+}
+
+func LoadFundData(r io.Reader) (*[]*FundData, error) {
+	funds := make([]*FundData, 0)
+	err := gocsv.Unmarshal(r, &funds)
+	return &funds, err
+}

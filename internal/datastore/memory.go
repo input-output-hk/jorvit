@@ -61,3 +61,37 @@ func FilterSingle(vs *[]*loader.ProposalData, f func(*loader.ProposalData) bool)
 	}
 	return nil
 }
+
+type Funds struct {
+	List *[]*loader.FundData `json:"funds"`
+}
+
+func (b *Funds) Initialize(filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	b.List, err = loader.LoadFundData(file)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range *b.List {
+		v.Voteplans = make([]loader.ChainVotePlan, 0)
+	}
+
+	return nil
+}
+
+// tmp
+func (b *Funds) First() *loader.FundData {
+	if len(*b.List) == 0 {
+		return nil
+	}
+	return (*b.List)[0]
+}
+
+func (b *Funds) Total() int {
+	return len(*b.List)
+}

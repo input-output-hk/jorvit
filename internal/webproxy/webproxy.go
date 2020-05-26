@@ -6,6 +6,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/input-output-hk/jorvit/internal/datastore"
@@ -14,6 +15,8 @@ import (
 var (
 	reverseProxyAddress = "http://127.0.0.1:8001"
 	proposals           datastore.ProposalsStore
+	funds               datastore.FundsStore
+	block0Bin           *[]byte
 )
 
 // ShiftPath splits off the first component of p, which will be cleaned of
@@ -68,6 +71,7 @@ func (h *ApiHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 type V0Handler struct {
 	ProposalHandler *ProposalHandler
 	Block0Handler   *Block0Handler
+	FundInfoHandler *FundInfoHandler
 }
 
 func (h *V0Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -79,9 +83,10 @@ func (h *V0Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		h.ProposalHandler.ServeHTTP(res, req)
 		return
 	case "block0":
+		h.Block0Handler.ServeHTTP(res, req)
 		return
-		// h.Block0Handler.ServeHTTP(res, req)
-
+	case "fund":
+		h.FundInfoHandler.ServeHTTP(res, req)
 	case "account":
 		serveReverseProxy("/api/v0/account", res, req)
 		return
@@ -195,15 +200,50 @@ func (h *ProposalListSingle) Handler(internalID string, res http.ResponseWriter,
 type Block0Handler struct {
 }
 
-func (h *Block0Handler) Handler(id int) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		// Do whatever
-	})
+func (h *Block0Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/octet-stream")
+	res.Header().Set("Content-Length", strconv.Itoa(len(*block0Bin)))
+	switch req.Method {
+	case "GET":
+		res.WriteHeader(http.StatusOK)
+		res.Write(*block0Bin)
+		return
+	default:
+		http.Error(res, "Only GET is allowed", http.StatusMethodNotAllowed)
+	}
 }
 
-func Run(p datastore.ProposalsStore, address string, revProxyAddr string) error {
+type FundInfoHandler struct {
+}
+
+func (h *FundInfoHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	switch req.Method {
+	case "GET":
+		if funds.Total() == 0 {
+			res.WriteHeader(http.StatusNotFound)
+			res.Write([]byte(`{"error": "empty data"}`))
+			return
+		}
+		resData, err := json.MarshalIndent(funds.First(), "", "  ")
+		if err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			res.Write([]byte(`{"error": "error marshalling data"}`))
+			return
+		}
+		res.WriteHeader(http.StatusOK)
+		res.Write(resData)
+		return
+	default:
+		http.Error(res, "Only GET is allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func Run(p datastore.ProposalsStore, f datastore.FundsStore, block0 *[]byte, address string, revProxyAddr string) error {
 	proposals = p
+	funds = f
 	reverseProxyAddress = revProxyAddr
+	block0Bin = block0
 
 	app := &App{
 		ApiHandler: &ApiHandler{
@@ -212,7 +252,8 @@ func Run(p datastore.ProposalsStore, address string, revProxyAddr string) error 
 					ProposalListAll:    new(ProposalListAll),
 					ProposalListSingle: new(ProposalListSingle),
 				},
-				Block0Handler: new(Block0Handler),
+				Block0Handler:   new(Block0Handler),
+				FundInfoHandler: new(FundInfoHandler),
 			},
 		},
 	}

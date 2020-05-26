@@ -8,3 +8,9 @@ type ProposalsStore interface {
 	SearchID(internalID string) *loader.ProposalData
 	Total() int
 }
+
+type FundsStore interface {
+	Initialize(filename string) error
+	First() *loader.FundData
+	Total() int
+}

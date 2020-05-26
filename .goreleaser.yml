@@ -33,6 +33,8 @@ archives:
         format: zip
     files:
       - README.md
+      - assets/proposals.csv
+      - jor_bins/Readme.md
 
 checksum:
   name_template: 'checksums.txt'

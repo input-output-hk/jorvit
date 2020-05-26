@@ -62,6 +62,7 @@ var (
 
 var (
 	proposals datastore.ProposalsStore
+	funds     datastore.FundsStore
 )
 
 func timeTrack(start time.Time, name string) {
@@ -75,21 +76,31 @@ func loadProposals(file string) error {
 	return proposals.Initialize(file)
 }
 
+func loadFundInfo(file string) error {
+	defer timeTrack(time.Now(), "Fund File load")
+	funds = &datastore.Funds{}
+	return funds.Initialize(file)
+}
+
 func main() {
 	var (
 		proxyAddrPort = flag.String("proxy", "0.0.0.0:8000", "Address where REST api PROXY should listen in IP:PORT format")
 		restAddrPort  = flag.String("rest", "0.0.0.0:8001", "Address where Jörmungandr REST api should listen in IP:PORT format")
 		nodePort      = flag.Uint("node", 9001, "PORT where Jörmungandr node should listen")
 		proposalsPath = flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
+		fundsPath     = flag.String("fund", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"fund.csv", "CSV full path (filename) to load FUND info from")
 	)
 
 	flag.Parse()
 
-	if *proxyAddrPort == "" || *restAddrPort == "" || *nodePort == 0 || *proposalsPath == "" {
+	if *proxyAddrPort == "" || *restAddrPort == "" || *nodePort == 0 || *proposalsPath == "" || *fundsPath == "" {
 		flag.Usage()
 	}
 	err := loadProposals(*proposalsPath)
 	kit.FatalOn(err, "loadProposals")
+
+	err = loadFundInfo(*fundsPath)
+	kit.FatalOn(err, "loadFundInfo")
 
 	var (
 
@@ -197,6 +208,8 @@ func main() {
 	votePlansNeeded := votePlansNeeded(proposalsTot, votePlanProposalsMax)
 	var votePlans = make([]ChainVotePlan, votePlansNeeded)
 
+	funds.First().Voteplans = make([]loader.ChainVotePlan, votePlansNeeded)
+
 	// Generate proposals hash and associate it to a voteplan
 	for i, proposal := range *proposals.All() {
 		// retrieve the voteplan intenal idx based on the proposal idx we are at
@@ -275,6 +288,11 @@ func main() {
 			proposal.ChainVotePlan.CommitteeEnd = time.Unix(committeeEndUnix, 0).String() // strconv.FormatInt(committeeEndUnix, 10)
 
 		}
+
+		funds.First().Voteplans[i].VotePlanID = votePlans[i].VotePlanID
+		funds.First().Voteplans[i].VoteStart = time.Unix(voteStartUnix, 0).String()
+		funds.First().Voteplans[i].VoteEnd = time.Unix(voteEndUnix, 0).String()
+		funds.First().Voteplans[i].CommitteeEnd = time.Unix(committeeEndUnix, 0).String()
 	}
 
 	block0Yaml, err := block0cfg.ToYaml()
@@ -368,7 +386,7 @@ func main() {
 	}
 
 	go func() {
-		err := webproxy.Run(proposals, proxyAddress, "http://"+restAddress)
+		err := webproxy.Run(proposals, funds, &block0Bin, proxyAddress, "http://"+restAddress)
 		if err != nil {
 			kit.FatalOn(err, "Proxy Run")
 		}
