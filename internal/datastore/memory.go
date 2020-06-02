@@ -20,10 +20,14 @@ func (b *Proposals) Initialize(filename string) error {
 	if err != nil {
 		return err
 	}
+
 	for _, v := range *b.List {
-		v.ChainProposal.VoteOptions.Blank = 0
-		v.ChainProposal.VoteOptions.Yes = 1
-		v.ChainProposal.VoteOptions.No = 2
+		v.ChainProposal.VoteOptions = make(loader.ChainVoteOptions)
+		// TODO: Hardcode for now, later retrieve from source, ex: in format "blank,yes,no" where order matters
+		v.ChainProposal.VoteOptions["blank"] = 0
+		v.ChainProposal.VoteOptions["yes"] = 1
+		v.ChainProposal.VoteOptions["no"] = 2
+		v.ChainVotePlan.Payload = "Public" // TODO: Hardcode for now, later retrieve from source
 	}
 	return nil
 }

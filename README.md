@@ -212,13 +212,15 @@ This service exposes the following rest endpoints:
          "chain_voteplan_id": "f4fdab54e2d516ce1cabe8ae8cfe77e99eeb530f7033cdf20e2392e012373a7b",
          "chain_vote_starttime": "2020-05-26 19:38:35 +0000 UTC",
          "chain_vote_endtime": "2020-05-26 19:43:35 +0000 UTC",
-         "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC"
+         "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC",
+         "chain_voteplan_payload": "Public"
        },
        {
          "chain_voteplan_id": "145b208b9de264352ae8b7071ee1c59996de01dde03ce8ecd5b44f7f71631cec",
          "chain_vote_starttime": "2020-05-26 19:38:35 +0000 UTC",
          "chain_vote_endtime": "2020-05-26 19:43:35 +0000 UTC",
-         "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC"
+         "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC",
+         "chain_voteplan_payload": "Public"
        }
      ]
    }
@@ -262,7 +264,8 @@ This service exposes the following rest endpoints:
      "chain_voteplan_id": "f4fdab54e2d516ce1cabe8ae8cfe77e99eeb530f7033cdf20e2392e012373a7b",
      "chain_vote_starttime": "2020-05-26 19:38:35 +0000 UTC",
      "chain_vote_endtime": "2020-05-26 19:43:35 +0000 UTC",
-     "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC"
+     "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC",
+     "chain_voteplan_payload": "Public"
    }
    ```
 
@@ -305,7 +308,8 @@ This service exposes the following rest endpoints:
        "chain_voteplan_id": "f4fdab54e2d516ce1cabe8ae8cfe77e99eeb530f7033cdf20e2392e012373a7b",
        "chain_vote_starttime": "2020-05-26 19:38:35 +0000 UTC",
        "chain_vote_endtime": "2020-05-26 19:43:35 +0000 UTC",
-       "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC"
+       "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC",
+       "chain_voteplan_payload": "Public"
      },
      {
        "internal_id": "20",
@@ -338,7 +342,8 @@ This service exposes the following rest endpoints:
        "chain_voteplan_id": "145b208b9de264352ae8b7071ee1c59996de01dde03ce8ecd5b44f7f71631cec",
        "chain_vote_starttime": "2020-05-26 19:38:35 +0000 UTC",
        "chain_vote_endtime": "2020-05-26 19:43:35 +0000 UTC",
-       "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC"
+       "chain_committee_endtime": "2020-05-26 19:48:35 +0000 UTC",
+       "chain_voteplan_payload": "Public"
      }
    ]
    ```

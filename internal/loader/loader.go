@@ -36,17 +36,14 @@ type ChainProposal struct {
 	VoteOptions ChainVoteOptions `json:"chain_vote_options"`
 }
 
-type ChainVoteOptions struct {
-	Blank uint8 `json:"blank"`
-	Yes   uint8 `json:"YES"`
-	No    uint8 `json:"NO"`
-}
+type ChainVoteOptions map[string]uint8
 
 type ChainVotePlan struct {
 	VotePlanID   string `json:"chain_voteplan_id"`
 	VoteStart    string `json:"chain_vote_starttime"`
 	VoteEnd      string `json:"chain_vote_endtime"`
 	CommitteeEnd string `json:"chain_committee_endtime"`
+	Payload      string `json:"chain_voteplan_payload" csv:"chain_voteplan_payload"`
 }
 
 type ProposalData struct {

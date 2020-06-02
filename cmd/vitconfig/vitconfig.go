@@ -30,6 +30,7 @@ type ChainVotePlan struct {
 	VoteStart    ChainTime
 	VoteEnd      ChainTime
 	CommitteeEnd ChainTime
+	Payload      string
 	Certificate  string
 	proposalID   []string
 }
@@ -51,8 +52,8 @@ func (ct *ChainTime) ToSeconds(SlotDuration, SlotsPerEpoch int) int64 {
 var (
 	votePlanProposalsMax = 10
 	voteStart            = ChainTime{0, 0}
-	voteEnd              = ChainTime{5, 0}
-	committeeEnd         = ChainTime{10, 0}
+	voteEnd              = ChainTime{15, 0}
+	committeeEnd         = ChainTime{20, 0}
 )
 
 var (
@@ -84,16 +85,17 @@ func loadFundInfo(file string) error {
 
 func main() {
 	var (
-		proxyAddrPort = flag.String("proxy", "0.0.0.0:8000", "Address where REST api PROXY should listen in IP:PORT format")
-		restAddrPort  = flag.String("rest", "0.0.0.0:8001", "Address where Jörmungandr REST api should listen in IP:PORT format")
-		nodePort      = flag.Uint("node", 9001, "PORT where Jörmungandr node should listen")
-		proposalsPath = flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
-		fundsPath     = flag.String("fund", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"fund.csv", "CSV full path (filename) to load FUND info from")
+		proxyAddrPort       = flag.String("proxy", "0.0.0.0:8000", "Address where REST api PROXY should listen in IP:PORT format")
+		restAddrPort        = flag.String("rest", "0.0.0.0:8001", "Address where Jörmungandr REST api should listen in IP:PORT format")
+		nodePort            = flag.Uint("node", 9001, "PORT where Jörmungandr node should listen")
+		proposalsPath       = flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
+		fundsPath           = flag.String("fund", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"fund.csv", "CSV full path (filename) to load FUND info from")
+		dumbGenesisDataPath = flag.String("dumbdata", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"dumb_genesis_data.yaml", "YAML full path (filename) to load dumb genesis funds from")
 	)
 
 	flag.Parse()
 
-	if *proxyAddrPort == "" || *restAddrPort == "" || *nodePort == 0 || *proposalsPath == "" || *fundsPath == "" {
+	if *proxyAddrPort == "" || *restAddrPort == "" || *nodePort == 0 || *proposalsPath == "" || *fundsPath == "" || *dumbGenesisDataPath == "" {
 		flag.Usage()
 	}
 	err := loadProposals(*proposalsPath)
@@ -172,12 +174,12 @@ func main() {
 	}
 
 	// set/change config params
-	block0cfg.BlockchainConfiguration.Block0Date = time.Now().Unix() // block0Date()
+	block0cfg.BlockchainConfiguration.Block0Date = time.Now().UTC().Unix() // block0Date()
 	block0cfg.BlockchainConfiguration.Block0Consensus = consensus
 	block0cfg.BlockchainConfiguration.Discrimination = block0Discrimination
 
-	block0cfg.BlockchainConfiguration.SlotDuration = 10
-	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 6
+	block0cfg.BlockchainConfiguration.SlotDuration = 4
+	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 21600
 
 	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 5
 	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 3
@@ -205,6 +207,7 @@ func main() {
 	proposalsTot := proposals.Total()
 
 	// Calculate nr of needed voteplans since there is a limit of proposals a plan can have (255)
+	// TODO: change to take in consideration also payload (we have only Public for now)
 	votePlansNeeded := votePlansNeeded(proposalsTot, votePlanProposalsMax)
 	var votePlans = make([]ChainVotePlan, votePlansNeeded)
 
@@ -213,6 +216,7 @@ func main() {
 	// Generate proposals hash and associate it to a voteplan
 	for i, proposal := range *proposals.All() {
 		// retrieve the voteplan intenal idx based on the proposal idx we are at
+		// TODO: change to take in consideration also payload (we have only Public for now)
 		vpIdx := votePlanIndex(i, votePlanProposalsMax)
 
 		// hash the proposal (TODO: decide what to hash in production)
@@ -235,6 +239,7 @@ func main() {
 		votePlans[i].VoteStart = voteStart
 		votePlans[i].VoteEnd = voteEnd
 		votePlans[i].CommitteeEnd = committeeEnd
+		votePlans[i].Payload = "Public"
 
 		cert, err := jcli.CertificateNewVotePlan(
 			votePlans[i].VoteStart.String(),
@@ -293,10 +298,19 @@ func main() {
 		funds.First().Voteplans[i].VoteStart = time.Unix(voteStartUnix, 0).String()
 		funds.First().Voteplans[i].VoteEnd = time.Unix(voteEndUnix, 0).String()
 		funds.First().Voteplans[i].CommitteeEnd = time.Unix(committeeEndUnix, 0).String()
+		funds.First().Voteplans[i].Payload = votePlans[i].Payload
 	}
 
 	block0Yaml, err := block0cfg.ToYaml()
 	kit.FatalOn(err)
+
+	bulkDumbData, _ := ioutil.ReadFile(*dumbGenesisDataPath)
+	// kit.FatalOn(err)
+	// ignore any error since that data is just to increase block0 size for testing
+
+	if len(bulkDumbData) > 0 {
+		block0Yaml = append(block0Yaml, bulkDumbData...)
+	}
 
 	// need this file for starting the node (--genesis-block)
 	block0BinFile := workingDir + string(os.PathSeparator) + "VIT-block0.bin"
@@ -430,16 +444,6 @@ func qrPrint(w []wallet.Wallet) {
 
 		fmt.Printf("\n%s\n%s\n", w[i], q.ToSmallString(false))
 	}
-}
-
-// get a fixed date if possible.
-// needed for testing only to have a known genesis hash.
-func block0Date() int64 {
-	block0Date, err := time.Parse(time.RFC3339, "2020-05-01T00:00:00.000Z")
-	if err != nil {
-		return time.Now().Unix()
-	}
-	return block0Date.Unix()
 }
 
 func votePlanIndex(i int, max int) int {
