@@ -178,8 +178,8 @@ func main() {
 	block0cfg.BlockchainConfiguration.Block0Consensus = consensus
 	block0cfg.BlockchainConfiguration.Discrimination = block0Discrimination
 
-	block0cfg.BlockchainConfiguration.SlotDuration = 4
-	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 21600
+	block0cfg.BlockchainConfiguration.SlotDuration = 2
+	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 43200
 
 	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 5
 	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 3
@@ -364,6 +364,7 @@ func main() {
 	nodeCfg.P2P.ListenAddress = p2pListenAddress
 	nodeCfg.P2P.AllowPrivateAddresses = true
 	nodeCfg.Log.Level = nodeCfgLogLevel
+	// nodeCfg.Rest.Cors.AllowedOrigins = []string{"*"}
 
 	nodeCfgYaml, err := nodeCfg.ToYaml()
 	kit.FatalOn(err)

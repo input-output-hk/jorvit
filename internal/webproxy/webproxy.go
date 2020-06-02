@@ -78,6 +78,8 @@ func (h *V0Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
+	res.Header().Set("Access-Control-Allow-Origin", "*")
+
 	switch head {
 	case "proposals":
 		h.ProposalHandler.ServeHTTP(res, req)
