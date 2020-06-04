@@ -44,6 +44,8 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case "api":
 		h.ApiHandler.ServeHTTP(res, req)
 		return
+	case "explorer":
+		serveReverseProxy("/explorer", res, req)
 	default:
 		http.Error(res, "Not Found", http.StatusNotFound)
 		return
