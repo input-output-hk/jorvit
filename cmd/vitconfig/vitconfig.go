@@ -91,6 +91,7 @@ func main() {
 		proposalsPath       = flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
 		fundsPath           = flag.String("fund", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"fund.csv", "CSV full path (filename) to load FUND info from")
 		dumbGenesisDataPath = flag.String("dumbdata", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"dumb_genesis_data.yaml", "YAML full path (filename) to load dumb genesis funds from")
+		explorerEnabled     = flag.Bool("explorer", true, "Enable/Disable explorer")
 	)
 
 	flag.Parse()
@@ -178,8 +179,8 @@ func main() {
 	block0cfg.BlockchainConfiguration.Block0Consensus = consensus
 	block0cfg.BlockchainConfiguration.Discrimination = block0Discrimination
 
-	block0cfg.BlockchainConfiguration.SlotDuration = 2
-	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 43200
+	block0cfg.BlockchainConfiguration.SlotDuration = 20
+	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 4320
 
 	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 5
 	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 3
@@ -365,6 +366,7 @@ func main() {
 	nodeCfg.P2P.AllowPrivateAddresses = true
 	nodeCfg.Log.Level = nodeCfgLogLevel
 	// nodeCfg.Rest.Cors.AllowedOrigins = []string{"*"}
+	nodeCfg.Explorer.Enabled = *explorerEnabled
 
 	nodeCfgYaml, err := nodeCfg.ToYaml()
 	kit.FatalOn(err)
