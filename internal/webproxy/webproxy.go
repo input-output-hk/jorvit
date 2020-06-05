@@ -276,6 +276,10 @@ func serveReverseProxy(target string, res http.ResponseWriter, req *http.Request
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 
+	if _, ok := req.Header["Origin"]; ok {
+		req.Header["Origin"][0] = reverseProxyAddress // "http://127.0.0.1:8001"
+	}
+
 	// SSL redirection
 	req.URL.Host = url.Host
 	req.URL.Scheme = url.Scheme

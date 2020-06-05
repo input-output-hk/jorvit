@@ -93,7 +93,7 @@ func main() {
 		fundsPath           = flag.String("fund", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"fund.csv", "CSV full path (filename) to load FUND info from")
 		dumbGenesisDataPath = flag.String("dumbdata", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"dumb_genesis_data.yaml", "YAML full path (filename) to load dumb genesis funds from")
 		explorerEnabled     = flag.Bool("explorer", true, "Enable/Disable explorer")
-		explorerCorsAllowed = flag.String("cors", "http://127.0.0.1:8000,http://127.0.0.1:8001", "Comma separated list of CORS alloed origins fro explorer")
+		restCorsAllowed     = flag.String("cors", "http://127.0.0.1:8000,http://127.0.0.1:8001,http://localhost:8000,http://localhost:8801,http://0.0.0.0:8000,http://0.0.0.0:8001", "Comma separated list of CORS allowed origins")
 	)
 
 	flag.Parse()
@@ -367,7 +367,7 @@ func main() {
 	nodeCfg.P2P.ListenAddress = p2pListenAddress
 	nodeCfg.P2P.AllowPrivateAddresses = true
 	nodeCfg.Log.Level = nodeCfgLogLevel
-	nodeCfg.Rest.Cors.AllowedOrigins = strings.Split(*explorerCorsAllowed, ",")
+	nodeCfg.Rest.Cors.AllowedOrigins = strings.Split(*restCorsAllowed, ",")
 
 	nodeCfg.Explorer.Enabled = *explorerEnabled
 
