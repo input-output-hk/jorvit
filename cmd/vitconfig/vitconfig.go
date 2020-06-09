@@ -53,8 +53,8 @@ func (ct *ChainTime) ToSeconds(SlotDuration, SlotsPerEpoch int) int64 {
 var (
 	votePlanProposalsMax = 10
 	voteStart            = ChainTime{0, 0}
-	voteEnd              = ChainTime{15, 0}
-	committeeEnd         = ChainTime{20, 0}
+	voteEnd              = ChainTime{1, 14400}
+	committeeEnd         = ChainTime{2, 0}
 )
 
 var (
@@ -181,23 +181,25 @@ func main() {
 	block0cfg.BlockchainConfiguration.Block0Consensus = consensus
 	block0cfg.BlockchainConfiguration.Discrimination = block0Discrimination
 
-	block0cfg.BlockchainConfiguration.SlotDuration = 20
-	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 4320
+	block0cfg.BlockchainConfiguration.SlotDuration = 1
+	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 21_600
 
-	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 400
-	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 3
-	block0cfg.BlockchainConfiguration.LinearFees.Constant = 200
+	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 200
+	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 10
+	block0cfg.BlockchainConfiguration.LinearFees.Constant = 100
 
 	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVoteCast = 10_000_000
 	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVotePlan = 100_000_000
+
+	block0cfg.BlockchainConfiguration.FeesGoTo = "treasury"
 
 	// Bft Leader
 	err = block0cfg.AddConsensusLeader(kit.B2S(leaderPK))
 	kit.FatalOn(err)
 
 	// Committee list - TODO: build a loader once defined/provided
-	block0cfg.AddCommittee("7ef044ba437057d6d944ace679b7f811335639a689064cd969dffc8b55a7cc19")
-	block0cfg.AddCommittee("f5285eeead8b5885a1420800de14b0d1960db1a990a6c2f7b517125bedc000db")
+	block0cfg.AddCommittee("568cb82664987cec6412230d02c8eb774e75a8514f2fc224539e0c041973795d")
+	block0cfg.AddCommittee("fdf83e0c1dbe95600c957e5ab92f807c4d98061ece092091e376cdfd2ae625a9")
 
 	// add legacy funds
 	for i := range wallets {
