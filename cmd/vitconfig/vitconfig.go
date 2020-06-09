@@ -27,11 +27,11 @@ import (
 )
 
 type ChainVotePlan struct {
-	VotePlanID   string
-	VoteStart    ChainTime
-	VoteEnd      ChainTime
-	CommitteeEnd ChainTime
-	Payload      string
+	VotePlanID   string    `csv:"chain_voteplan_id"`
+	VoteStart    ChainTime `csv:"chain_vote_starttime"`
+	VoteEnd      ChainTime `csv:"chain_vote_endtime"`
+	CommitteeEnd ChainTime `csv:"chain_committee_endtime"`
+	Payload      string    `csv:"chain_voteplan_payload"`
 	Certificate  string
 	proposalID   []string
 }
@@ -184,9 +184,12 @@ func main() {
 	block0cfg.BlockchainConfiguration.SlotDuration = 20
 	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 4320
 
-	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 5
+	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 400
 	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 3
-	block0cfg.BlockchainConfiguration.LinearFees.Constant = 2
+	block0cfg.BlockchainConfiguration.LinearFees.Constant = 200
+
+	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVoteCast = 10_000_000
+	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVotePlan = 100_000_000
 
 	// Bft Leader
 	err = block0cfg.AddConsensusLeader(kit.B2S(leaderPK))
@@ -254,11 +257,11 @@ func main() {
 		kit.FatalOn(err, "CertificateNewVotePlan")
 
 		id, err := jcli.CertificateGetVotePlanID(cert, "", "")
-		kit.FatalOn(err, "CertificateGetVotePlanID")
+		kit.FatalOn(err, "CertificateGetVotePlanID:", kit.B2S(id))
 
 		// convert cert hrp to signedcert (TODO: tmp until node is fixed)
 		cert, err = jcli.UtilsBech32Convert(kit.B2S(cert), "signedcert")
-		kit.FatalOn(err, "UtilsBech32Convert")
+		kit.FatalOn(err, "UtilsBech32Convert:", kit.B2S(cert))
 
 		votePlans[i].Certificate = kit.B2S(cert)
 		votePlans[i].VotePlanID = kit.B2S(id)
@@ -368,6 +371,7 @@ func main() {
 	nodeCfg.P2P.AllowPrivateAddresses = true
 	nodeCfg.Log.Level = nodeCfgLogLevel
 	nodeCfg.Rest.Cors.AllowedOrigins = strings.Split(*restCorsAllowed, ",")
+	nodeCfg.Rest.Cors.MaxAgeSecs = 0
 
 	nodeCfg.Explorer.Enabled = *explorerEnabled
 

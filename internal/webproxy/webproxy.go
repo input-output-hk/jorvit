@@ -37,6 +37,12 @@ type App struct {
 }
 
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	if req.Method == "OPTIONS" {
+		corsHeaders(res, req)
+		res.WriteHeader(http.StatusOK)
+		return
+	}
+
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
@@ -80,8 +86,6 @@ func (h *V0Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
-	res.Header().Set("Access-Control-Allow-Origin", "*")
-
 	switch head {
 	case "proposals":
 		h.ProposalHandler.ServeHTTP(res, req)
@@ -105,6 +109,8 @@ func (h *V0Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	case "settings":
 		serveReverseProxy("/api/v0/settings", res, req)
+	case "vote":
+		serveReverseProxy("/api/v0/vote", res, req)
 		return
 	default:
 		http.Error(res, "Not Found", http.StatusNotFound)
@@ -142,8 +148,7 @@ func (h *ProposalHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 	}
 }
 
-type ProposalListAll struct {
-}
+type ProposalListAll struct{}
 
 func (h *ProposalListAll) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
@@ -162,6 +167,7 @@ func (h *ProposalListAll) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 			res.Write([]byte(`{"error": "error marshalling data"}`))
 			return
 		}
+		corsHeaders(res, req)
 		res.WriteHeader(http.StatusOK)
 		res.Write(resData)
 		return
@@ -170,8 +176,7 @@ func (h *ProposalListAll) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 	}
 }
 
-type ProposalListSingle struct {
-}
+type ProposalListSingle struct{}
 
 func (h *ProposalListSingle) Handler(internalID string, res http.ResponseWriter, req *http.Request) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
@@ -192,6 +197,7 @@ func (h *ProposalListSingle) Handler(internalID string, res http.ResponseWriter,
 				res.Write([]byte(`{"error": "error marshalling data"}`))
 				return
 			}
+			corsHeaders(res, req)
 			res.WriteHeader(http.StatusOK)
 			res.Write(resData)
 			return
@@ -201,14 +207,14 @@ func (h *ProposalListSingle) Handler(internalID string, res http.ResponseWriter,
 	})
 }
 
-type Block0Handler struct {
-}
+type Block0Handler struct{}
 
 func (h *Block0Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/octet-stream")
 	res.Header().Set("Content-Length", strconv.Itoa(len(*block0Bin)))
 	switch req.Method {
 	case "GET":
+		corsHeaders(res, req)
 		res.WriteHeader(http.StatusOK)
 		res.Write(*block0Bin)
 		return
@@ -217,8 +223,7 @@ func (h *Block0Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-type FundInfoHandler struct {
-}
+type FundInfoHandler struct{}
 
 func (h *FundInfoHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
@@ -235,6 +240,7 @@ func (h *FundInfoHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 			res.Write([]byte(`{"error": "error marshalling data"}`))
 			return
 		}
+		corsHeaders(res, req)
 		res.WriteHeader(http.StatusOK)
 		res.Write(resData)
 		return
@@ -270,11 +276,12 @@ func Run(p datastore.ProposalsStore, f datastore.FundsStore, block0 *[]byte, add
 	return srv.ListenAndServe()
 }
 
-// Serve a reverse proxy for a given url
+// serveReverseProxy - Serve a reverse proxy for a given url
 func serveReverseProxy(target string, res http.ResponseWriter, req *http.Request) {
 	url, _ := url.Parse(reverseProxyAddress + target)
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
+	proxy.ModifyResponse = proxyResHeaders
 
 	if _, ok := req.Header["Origin"]; ok {
 		req.Header["Origin"][0] = reverseProxyAddress // "http://127.0.0.1:8001"
@@ -287,4 +294,20 @@ func serveReverseProxy(target string, res http.ResponseWriter, req *http.Request
 	req.Host = url.Host
 
 	proxy.ServeHTTP(res, req)
+}
+
+// corsHeaders - app response cors headers modify
+func corsHeaders(res http.ResponseWriter, req *http.Request) {
+	if _, ok := req.Header["Origin"]; ok || req.Method == "OPTIONS" {
+		headers := res.Header()
+		headers.Set("Access-Control-Allow-Origin", "*")
+	}
+}
+
+// proxyResHeaders - reverse proxy response headers modify
+func proxyResHeaders(res *http.Response) error {
+	if _, ok := res.Header["Access-Control-Allow-Origin"]; ok {
+		res.Header.Set("Access-Control-Allow-Origin", "*")
+	}
+	return nil
 }

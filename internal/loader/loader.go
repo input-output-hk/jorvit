@@ -2,6 +2,7 @@ package loader
 
 import (
 	"io"
+	"strings"
 
 	"github.com/gocarina/gocsv"
 )
@@ -19,9 +20,9 @@ type Proposal struct {
 }
 
 type ProposalCategory struct {
-	CategoryID   string `json:"category_id"          csv:"category_id"`
-	CategoryName string `json:"category_name"        csv:"category_name"`
-	CategoryDesc string `json:"category_description" csv:"category_description"`
+	CategoryID   string `json:"category_id"`
+	CategoryName string `json:"category_name"         csv:"category_name"`
+	CategoryDesc string `json:"category_description"`
 }
 
 type Proposer struct {
@@ -31,19 +32,36 @@ type Proposer struct {
 }
 
 type ChainProposal struct {
-	ExternalID  string           `json:"chain_proposal_id"`
-	Index       uint8            `json:"chain_proposal_index"`
-	VoteOptions ChainVoteOptions `json:"chain_vote_options"`
+	ExternalID  string           `json:"chain_proposal_id"    csv:"chain_proposal_id"`
+	Index       uint8            `json:"chain_proposal_index" csv:"chain_proposal_index"`
+	VoteOptions ChainVoteOptions `json:"chain_vote_options"   csv:"chain_vote_options"`
 }
 
 type ChainVoteOptions map[string]uint8
 
+func (cvo *ChainVoteOptions) UnmarshalCSV(csv string) (err error) {
+	options := strings.Split(csv, ",")
+	*cvo = make(map[string]uint8, len(options))
+	for i, opt := range options {
+		(*cvo)[opt] = uint8(i)
+	}
+	return nil
+}
+func (cvo *ChainVoteOptions) MarshalCSV() (string, error) {
+	opts := make([]string, len(*cvo))
+	for opt, i := range *cvo {
+		opts[i] = opt
+	}
+	return strings.Join(opts, ","), nil
+}
+
 type ChainVotePlan struct {
-	VotePlanID   string `json:"chain_voteplan_id"`
-	VoteStart    string `json:"chain_vote_starttime"`
-	VoteEnd      string `json:"chain_vote_endtime"`
-	CommitteeEnd string `json:"chain_committee_endtime"`
-	Payload      string `json:"chain_voteplan_payload" csv:"chain_voteplan_payload"`
+	VotePlanID   string `json:"chain_voteplan_id"       csv:"chain_voteplan_id"`
+	VoteStart    string `json:"chain_vote_starttime"    csv:"chain_vote_starttime"`
+	VoteEnd      string `json:"chain_vote_endtime"      csv:"chain_vote_endtime"`
+	CommitteeEnd string `json:"chain_committee_endtime" csv:"chain_committee_endtime"`
+	Payload      string `json:"chain_voteplan_payload"  csv:"chain_voteplan_payload"`
+	FundID       string `json:"fund_id,omitempty"       csv:"fund_id"`
 }
 
 type ProposalData struct {
@@ -62,6 +80,7 @@ func LoadData(r io.Reader) (*[]*ProposalData, error) {
 }
 
 type FundData struct {
+	FundID          string          `json:"fund_id,omitempty"    csv:"fund_id"`
 	Name            string          `json:"fund_name"            csv:"fund_name"`
 	Goal            string          `json:"fund_goal"            csv:"fund_goal"`
 	VotingPowerInfo string          `json:"voting_power_info"    csv:"voting_power_info"`
