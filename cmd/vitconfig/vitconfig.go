@@ -52,9 +52,9 @@ func (ct *ChainTime) ToSeconds(SlotDuration, SlotsPerEpoch int) int64 {
 
 var (
 	votePlanProposalsMax = 10
-	voteStart            = ChainTime{0, 0}
-	voteEnd              = ChainTime{1, 14400}
-	committeeEnd         = ChainTime{2, 0}
+	voteStart            = ChainTime{0, 900}
+	voteEnd              = ChainTime{4, 900}
+	committeeEnd         = ChainTime{8, 900}
 )
 
 var (
