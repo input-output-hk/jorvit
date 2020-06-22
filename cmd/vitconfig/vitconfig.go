@@ -4,6 +4,7 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -26,6 +27,27 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
+type jcliProposal struct {
+	ExternalID string `json:"external_id"`
+	Options    uint8  `json:"options"`
+	Action     string `json:"action"` // set it "off_chain" for now
+}
+
+type jcliVotePlan struct {
+	Payload      string         `json:"payload_type"` // set it "public" for now
+	VoteStart    ChainTime      `json:"vote_start"`
+	VoteEnd      ChainTime      `json:"vote_end"`
+	CommitteeEnd ChainTime      `json:"committee_end"`
+	Proposals    []jcliProposal `json:"proposals"`
+	VotePlanID   string         `json:"-"`
+	Certificate  string         `json:"-"`
+}
+
+type ChainTime struct {
+	Epoch  int `json:"epoch"`
+	SlotID int `json:"slot_id"`
+}
+
 type ChainVotePlan struct {
 	VotePlanID   string    `csv:"chain_voteplan_id"`
 	VoteStart    ChainTime `csv:"chain_vote_starttime"`
@@ -36,25 +58,20 @@ type ChainVotePlan struct {
 	proposalID   []string
 }
 
-type ChainTime struct {
-	epoch int
-	slot  int
-}
-
 func (ct *ChainTime) String() string {
-	return strconv.Itoa(ct.epoch) + "." + strconv.Itoa(ct.slot)
+	return strconv.Itoa(ct.Epoch) + "." + strconv.Itoa(ct.SlotID)
 }
 
 func (ct *ChainTime) ToSeconds(SlotDuration, SlotsPerEpoch int) int64 {
 	epochDuration := SlotDuration * SlotsPerEpoch
-	return int64(ct.epoch*epochDuration + ct.slot*SlotDuration)
+	return int64(ct.Epoch*epochDuration + ct.SlotID*SlotDuration)
 }
 
 var (
-	votePlanProposalsMax = 10
-	voteStart            = ChainTime{0, 900}
-	voteEnd              = ChainTime{4, 900}
-	committeeEnd         = ChainTime{8, 900}
+	votePlanProposalsMax = 254
+	voteStart            = ChainTime{0, 0}
+	voteEnd              = ChainTime{28, 0}
+	committeeEnd         = ChainTime{40, 0}
 )
 
 var (
@@ -165,6 +182,11 @@ func main() {
 	leaderPK, err := jcli.KeyToPublic(leaderSK, "", "")
 	kit.FatalOn(err, kit.B2S(leaderPK))
 
+	// Needed later on to sign
+	bftSecretFile := workingDir + string(os.PathSeparator) + "bft_secret.key"
+	err = ioutil.WriteFile(bftSecretFile, leaderSK, 0744)
+	kit.FatalOn(err)
+
 	/////////////////////
 	//  block0 config  //
 	/////////////////////
@@ -198,8 +220,8 @@ func main() {
 	kit.FatalOn(err)
 
 	// Committee list - TODO: build a loader once defined/provided
-	block0cfg.AddCommittee("568cb82664987cec6412230d02c8eb774e75a8514f2fc224539e0c041973795d")
-	block0cfg.AddCommittee("fdf83e0c1dbe95600c957e5ab92f807c4d98061ece092091e376cdfd2ae625a9")
+	// block0cfg.AddCommittee("568cb82664987cec6412230d02c8eb774e75a8514f2fc224539e0c041973795d")
+	// block0cfg.AddCommittee("fdf83e0c1dbe95600c957e5ab92f807c4d98061ece092091e376cdfd2ae625a9")
 
 	// add legacy funds
 	for i := range wallets {
@@ -218,6 +240,8 @@ func main() {
 	// TODO: change to take in consideration also payload (we have only Public for now)
 	votePlansNeeded := votePlansNeeded(proposalsTot, votePlanProposalsMax)
 	var votePlans = make([]ChainVotePlan, votePlansNeeded)
+	// TODO: ose only this one instead off votePlans
+	var jcliVotePlans = make([]jcliVotePlan, votePlansNeeded)
 
 	funds.First().Voteplans = make([]loader.ChainVotePlan, votePlansNeeded)
 
@@ -240,6 +264,17 @@ func main() {
 			proposal.ChainVotePlan.CommitteeEnd = committeeEnd
 			proposal.ChainProposal.Index = uint8(len(votePlans[vpIdx].proposalID))
 		*/
+
+		// TODO: ose only this one instead off votePlans
+		jcliVotePlans[vpIdx].Proposals = append(
+			jcliVotePlans[vpIdx].Proposals,
+			jcliProposal{
+				ExternalID: proposal.ChainProposal.ExternalID,
+				Options:    uint8(len(proposal.ChainProposal.VoteOptions)),
+				Action:     "off_chain",
+			},
+		)
+
 	}
 
 	// Generate voteplan certificates and id
@@ -247,23 +282,25 @@ func main() {
 		votePlans[i].VoteStart = voteStart
 		votePlans[i].VoteEnd = voteEnd
 		votePlans[i].CommitteeEnd = committeeEnd
-		votePlans[i].Payload = "Public"
+		votePlans[i].Payload = "public"
 
-		cert, err := jcli.CertificateNewVotePlan(
-			votePlans[i].VoteStart.String(),
-			votePlans[i].VoteEnd.String(),
-			votePlans[i].CommitteeEnd.String(),
-			votePlans[i].proposalID,
-			"",
-		)
+		// TODO: ose only this one instead off votePlans
+		jcliVotePlans[i].VoteStart = voteStart
+		jcliVotePlans[i].VoteEnd = voteEnd
+		jcliVotePlans[i].CommitteeEnd = committeeEnd
+		jcliVotePlans[i].Payload = "public"
+
+		stdinConfig, err := json.Marshal(jcliVotePlans[i])
+		kit.FatalOn(err, "json.Marshal VotePlan Config")
+
+		cert, err := jcli.CertificateNewVotePlan(stdinConfig, "", "")
 		kit.FatalOn(err, "CertificateNewVotePlan")
 
 		id, err := jcli.CertificateGetVotePlanID(cert, "", "")
 		kit.FatalOn(err, "CertificateGetVotePlanID:", kit.B2S(id))
 
-		// convert cert hrp to signedcert (TODO: tmp until node is fixed)
-		cert, err = jcli.UtilsBech32Convert(kit.B2S(cert), "signedcert")
-		kit.FatalOn(err, "UtilsBech32Convert:", kit.B2S(cert))
+		cert, err = jcli.CertificateSign(cert, []string{bftSecretFile}, "", "")
+		kit.FatalOn(err, "CertificateSign:", kit.B2S(cert))
 
 		votePlans[i].Certificate = kit.B2S(cert)
 		votePlans[i].VotePlanID = kit.B2S(id)

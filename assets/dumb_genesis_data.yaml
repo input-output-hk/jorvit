@@ -1,4 +1,9 @@
   - fund:
+      - address: ca1qhjhe6em9qe0ql3w7pg7wu4k92ph77jgds678r63ha2kh5atek8v5up7e4j
+        value: 1000000000000
+      - address: ca1q45x6g98x3uxccduesr05w2uglr076z0t7tzf7f3uxu7pmhw9r6xvu5wptf
+        value: 1000000000000
+  - fund:
       - address: ca1qk4h393qhr7upqcy5kms3w90zemv3p5djk53pjrduarmk9a2qj84xcc2lft
         value: 1
   - fund:
