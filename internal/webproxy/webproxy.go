@@ -39,7 +39,7 @@ type App struct {
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if req.Method == "OPTIONS" {
 		corsHeaders(res, req)
-		res.WriteHeader(http.StatusOK)
+		res.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -298,7 +298,12 @@ func serveReverseProxy(target string, res http.ResponseWriter, req *http.Request
 
 // corsHeaders - app response cors headers modify
 func corsHeaders(res http.ResponseWriter, req *http.Request) {
-	if _, ok := req.Header["Origin"]; ok || req.Method == "OPTIONS" {
+	if req.Method == "OPTIONS" {
+		headers := res.Header()
+		headers.Set("Access-Control-Allow-Origin", "*")
+		headers.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD")
+		headers.Set("Access-Control-Allow-Headers", "Authorization, Origin, X-Requested-With, Content-Type, Accept")
+	} else if _, ok := req.Header["Origin"]; ok {
 		headers := res.Header()
 		headers.Set("Access-Control-Allow-Origin", "*")
 	}
