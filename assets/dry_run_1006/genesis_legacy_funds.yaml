@@ -1,3 +1,8 @@
+  - fund:
+      - address: ca1qhjhe6em9qe0ql3w7pg7wu4k92ph77jgds678r63ha2kh5atek8v5up7e4j
+        value: 1000000000000
+      - address: ca1q45x6g98x3uxccduesr05w2uglr076z0t7tzf7f3uxu7pmhw9r6xvu5wptf
+        value: 1000000000000
   - legacy_fund:
       - address: DdzFFzCqrhskD4sKRVustvBvtfb2Yc5CFNgVdDj76d5vM1vZGfKKSKJWsu4Q66sqnt6jX8KcKmKDbwaVhC4Y9HDwqf44bwLkWc57XB6D
         value: 10000000000000
@@ -54,6 +59,47 @@
       - address: Ae2tdPwUPEZ47aEj6x6gZx7aE6bQ1bVqyM4eWUBS5k7WQggh85WxKQkhH6t
         value: 10000000000
       - address: Ae2tdPwUPEZ2BAWAFgFFsXdBNjniDvxc7mJxvV1JiikLn2p3iG8c5f2Yd2w
+        value: 10000000000
+  - legacy_fund:
+      - address: Ae2tdPwUPEZ1Z9eZQcmTALCtdnv4Yw8QfTxcQ18c2RPfnaxt4xAe4sSUAyv
+        value: 10000000000
+      - address: Ae2tdPwUPEZ16MbH5wNb5jSZchtdYpRVNRaeXuP8xXZggq9SVhQSQbQ2uB6
+        value: 10000000000
+      - address: Ae2tdPwUPEZ1awM1B4STwKSS3wvQ2A6azAn1JMdecmnioM2WF9FftnwpdnV
+        value: 10000000000
+      - address: Ae2tdPwUPEZ8GYkM3WqwBawf4LwE9YWE9TxaYW5AfUX5pDLqQe2uaHA6zLC
+        value: 10000000000
+      - address: Ae2tdPwUPEYyEd9qMudHD8gc5R6w6ybFE1JXqzs5KdVhM7qU67F8ud8GVwb
+        value: 10000000000
+      - address: Ae2tdPwUPEZ3PNRGE5WDdPfPJLzUj3piv5oMNU9FVpZkEJZQHBdiqXrpeho
+        value: 10000000000
+      - address: Ae2tdPwUPEZKGwEoJkwrMmduDftMdjWoyAJEqJGUJTW9v8KtkznejP6NmhU
+        value: 10000000000
+      - address: Ae2tdPwUPEZ5cypLe2peqf2co1mihD2UJAXQ5oAiodmzof3aACARwWHSvQB
+        value: 10000000000
+      - address: Ae2tdPwUPEYxwvufpiifKuohQsTqqE6DrL5PpNTCcWpPxqdNcuJiwnCLJg1
+        value: 10000000000
+      - address: Ae2tdPwUPEZBjACnLyLf1pqiZTfhuNZ98dmySjaY8Gf3UZzM4ijE6FGTUng
+        value: 10000000000
+      - address: Ae2tdPwUPEZMm94dwQd3mArcgDaibSR7nBoA9XDzpfFYnarF7rH62JvuFmR
+        value: 10000000000
+      - address: Ae2tdPwUPEZ4KD4MMV9s25h8sqtUxcz1GuH4sPFVRiLZupbtzPVW7TKT39J
+        value: 10000000000
+      - address: Ae2tdPwUPEZKfZWSGrNVmftajhNcxMNcmyHrQp8cNzjxk91mE4zNubFAW3y
+        value: 10000000000
+      - address: Ae2tdPwUPEZ4xUzBbA5juTQpKRVxUeS2ULTnWCWctw2smR2SAtLLB9J4QZb
+        value: 10000000000
+      - address: Ae2tdPwUPEZB2EgUmkVhMocLfSuRzj71phpdoquufYsaLMxtAa26TXHs8dE
+        value: 10000000000
+      - address: Ae2tdPwUPEZLjRyhT4A4hVUexjVaTRuz773v1iYNcuHneM3hTmgj69wqFSB
+        value: 10000000000
+      - address: Ae2tdPwUPEZ9om9chkQ2KS1MgdZ4tswZt4N5HxLuJZj55VbhC1KT4ce7g9G
+        value: 10000000000
+      - address: Ae2tdPwUPEZGmV68Ksq86SvZzRVAT6yhDtEA8Xkko4wKashsokmJnGkcWUX
+        value: 10000000000
+      - address: Ae2tdPwUPEYzW4qABsHLryWbQSVpicYoMEAmjbWAsYpuSVFHNmwvQyEauqy
+        value: 10000000000
+      - address: Ae2tdPwUPEZ3eZBJ1gxbW4dDuc4TRXgX4bCoUvHANB4moLhNY3x3swXmruD
         value: 10000000000
   - legacy_fund:
       - address: Ae2tdPwUPEZDvV2Ut2QCMHMcv2F33qMte7ATZtJ9N6VyaE4unSe2X4vSNCL
