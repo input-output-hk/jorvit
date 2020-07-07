@@ -259,17 +259,10 @@ func main() {
 	kit.FatalOn(err, "loadFundInfo")
 
 	var (
-
 		// Proxy
-		// proxyAddr, proxyPort = "0.0.0.0", 8000
-		// proxyAddress         = proxyAddr + ":" + strconv.Itoa(proxyPort)
-
 		proxyAddress = *proxyAddrPort
 
 		// Rest
-		// restAddr, restPort = "0.0.0.0", 8001
-		// restAddress        = restAddr + ":" + strconv.Itoa(restPort)
-
 		restAddress = *restAddrPort
 
 		// P2P
@@ -337,18 +330,18 @@ func main() {
 	block0cfg.BlockchainConfiguration.Block0Consensus = consensus
 	block0cfg.BlockchainConfiguration.Discrimination = block0Discrimination
 
-	block0cfg.BlockchainConfiguration.SlotDuration = uint8(slotDur.Seconds())    // 2
-	block0cfg.BlockchainConfiguration.SlotsPerEpoch = uint32(epochDur / slotDur) // 43_200
+	block0cfg.BlockchainConfiguration.SlotDuration = uint8(slotDur.Seconds())
+	block0cfg.BlockchainConfiguration.SlotsPerEpoch = uint32(epochDur / slotDur)
 
-	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 0 // 10_000
-	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 0 // 100_000
-	block0cfg.BlockchainConfiguration.LinearFees.Constant = 0    // 200_000
+	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 0
+	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 0
+	block0cfg.BlockchainConfiguration.LinearFees.Constant = 0
 
-	block0cfg.BlockchainConfiguration.LinearFees.PerCertificateFees.CertificatePoolRegistration = 0 // 500_000_000
-	block0cfg.BlockchainConfiguration.LinearFees.PerCertificateFees.CertificateStakeDelegation = 0  // 400_000
+	block0cfg.BlockchainConfiguration.LinearFees.PerCertificateFees.CertificatePoolRegistration = 0
+	block0cfg.BlockchainConfiguration.LinearFees.PerCertificateFees.CertificateStakeDelegation = 0
 
-	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVoteCast = 0 // 10_000_000
-	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVotePlan = 0 // 100_000_000
+	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVoteCast = 0
+	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVotePlan = 0
 
 	block0cfg.BlockchainConfiguration.FeesGoTo = "treasury"
 
@@ -438,18 +431,39 @@ func main() {
 			proposal.ChainVotePlan.VotePlanID = jcliVotePlans[i].VotePlanID
 			proposal.ChainProposal.Index = uint8(pi)
 
-			proposal.ChainVotePlan.VoteStart = voteStartTime.String()       // time.Unix(voteStartUnix, 0).String()       // strconv.FormatInt(voteStartUnix, 10)
-			proposal.ChainVotePlan.VoteEnd = voteEndTime.String()           // time.Unix(voteEndUnix, 0).String()           // strconv.FormatInt(voteEndUnix, 10)
-			proposal.ChainVotePlan.CommitteeEnd = committeeEndTime.String() // time.Unix(committeeEndUnix, 0).String() // strconv.FormatInt(committeeEndUnix, 10)
+			proposal.ChainVotePlan.VoteStart = voteStartTime.String()
+			proposal.ChainVotePlan.VoteEnd = voteEndTime.String()
+			proposal.ChainVotePlan.CommitteeEnd = committeeEndTime.String()
 
 		}
 
 		funds.First().Voteplans[i].VotePlanID = jcliVotePlans[i].VotePlanID
-		funds.First().Voteplans[i].VoteStart = voteStartTime.String()       // time.Unix(voteStartUnix, 0).String()
-		funds.First().Voteplans[i].VoteEnd = voteEndTime.String()           // time.Unix(voteEndUnix, 0).String()
-		funds.First().Voteplans[i].CommitteeEnd = committeeEndTime.String() // time.Unix(committeeEndUnix, 0).String()
+		funds.First().Voteplans[i].VoteStart = voteStartTime.String()
+		funds.First().Voteplans[i].VoteEnd = voteEndTime.String()
+		funds.First().Voteplans[i].CommitteeEnd = committeeEndTime.String()
 		funds.First().Voteplans[i].Payload = jcliVotePlans[i].Payload
 	}
+
+	/* TODO: TMP - remove once properly defined */
+
+	if funds.First().StartTime == "" {
+		funds.First().StartTime = voteStartTime.String()
+	}
+	if funds.First().EndTime == "" {
+		funds.First().EndTime = voteEndTime.String()
+	}
+
+	if funds.First().VotingPowerInfo == "" {
+		funds.First().VotingPowerInfo = funds.First().StartTime
+	}
+	if funds.First().RewardsInfo == "" {
+		funds.First().RewardsInfo = committeeEndTime.Add(epochDur).String()
+	}
+
+	if funds.First().NextStartTime == "" {
+		funds.First().NextStartTime = committeeEndTime.Add(2 * epochDur).String()
+	}
+	/* TODO: TMP - remove once properly defined */
 
 	block0Yaml, err := block0cfg.ToYaml()
 	kit.FatalOn(err)
@@ -475,16 +489,9 @@ func main() {
 	block0Hash, err := jcli.GenesisHash(block0Bin, "")
 	kit.FatalOn(err, kit.B2S(block0Hash))
 
-	// block0TxtFile will be created by jcli - it fails for now due to the voteplan cert hack
+	// block0TxtFile will be created by jcli
 	block0Txt, err := jcli.GenesisDecode(block0Bin, "", block0TxtFile)
-	_ = block0Txt
-	// kit.FatalOn(err, kit.B2S(block0Txt))
-
-	// TODO: remove once proper voteplan cert inside genesis is implemented
-	if err != nil {
-		err = ioutil.WriteFile(block0TxtFile, block0Yaml, 0755)
-		kit.FatalOn(err)
-	}
+	kit.FatalOn(err, kit.B2S(block0Txt))
 
 	//////////////////////
 	//  secrets config  //
