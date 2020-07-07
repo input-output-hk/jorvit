@@ -44,39 +44,29 @@ type jcliVotePlan struct {
 }
 
 type ChainTime struct {
-	Epoch  int `json:"epoch"`
-	SlotID int `json:"slot_id"`
+	Epoch  int64 `json:"epoch"`
+	SlotID int64 `json:"slot_id"`
 }
 
-type ChainVotePlan struct {
-	VotePlanID   string    `csv:"chain_voteplan_id"`
-	VoteStart    ChainTime `csv:"chain_vote_starttime"`
-	VoteEnd      ChainTime `csv:"chain_vote_endtime"`
-	CommitteeEnd ChainTime `csv:"chain_committee_endtime"`
-	Payload      string    `csv:"chain_voteplan_payload"`
-	Certificate  string
-	proposalID   []string
+func (ct ChainTime) String() string {
+	return strconv.FormatInt(ct.Epoch, 10) + "." + strconv.FormatInt(ct.SlotID, 10)
 }
 
-func (ct *ChainTime) String() string {
-	return strconv.Itoa(ct.Epoch) + "." + strconv.Itoa(ct.SlotID)
-}
+func ToChainTime(block0Time int64, SlotDuration uint8, SlotsPerEpoch uint32, dataTime int64) ChainTime {
+	slotsTotal := (dataTime - block0Time) / int64(SlotDuration)
+	epoch := slotsTotal / int64(SlotsPerEpoch)
+	slot := slotsTotal % int64(SlotsPerEpoch)
 
-func (ct *ChainTime) ToSeconds(SlotDuration, SlotsPerEpoch int) int64 {
-	epochDuration := SlotDuration * SlotsPerEpoch
-	return int64(ct.Epoch*epochDuration + ct.SlotID*SlotDuration)
+	return ChainTime{
+		Epoch:  epoch,
+		SlotID: slot,
+	}
 }
 
 var (
 	votePlanProposalsMax = 254
-	voteStart            = ChainTime{0, 0}
-	voteEnd              = ChainTime{28, 0}
-	committeeEnd         = ChainTime{40, 0}
-)
-
-var (
-	leaderSK = []byte("ed25519_sk1pl4vp0grkl2puspv4c3hwhz89r68yjyzalc78pyt0pujpmk8mxkq6kpc5j")
-	wallets  = wallet.SampleWallets()
+	leaderSK             = []byte("ed25519_sk1pl4vp0grkl2puspv4c3hwhz89r68yjyzalc78pyt0pujpmk8mxkq6kpc5j")
+	wallets              = wallet.SampleWallets()
 )
 
 var (
@@ -102,23 +92,167 @@ func loadFundInfo(file string) error {
 }
 
 func main() {
+	var err error
 	var (
-		proxyAddrPort       = flag.String("proxy", "0.0.0.0:8000", "Address where REST api PROXY should listen in IP:PORT format")
-		restAddrPort        = flag.String("rest", "0.0.0.0:8001", "Address where Jörmungandr REST api should listen in IP:PORT format")
-		nodePort            = flag.Uint("node", 9001, "PORT where Jörmungandr node should listen")
+		// node settings
+		proxyAddrPort   = flag.String("proxy", "0.0.0.0:8000", "Address where REST api PROXY should listen in IP:PORT format")
+		restAddrPort    = flag.String("rest", "0.0.0.0:8001", "Address where Jörmungandr REST api should listen in IP:PORT format")
+		nodeAddrPort    = flag.String("node", "127.0.0.1:9001", "Address where Jörmungandr node should listen in IP:PORT format")
+		explorerEnabled = flag.Bool("explorer", false, "Enable/Disable explorer")
+		restCorsAllowed = flag.String("cors", "https://api.vit.iohk.io,https://127.0.0.1,http://127.0.0.1,http://127.0.0.1:8000,http://127.0.0.1:8001,https://localhost,http://localhost,http://localhost:8000,http://localhost:8001,http://0.0.0.0:8000,http://0.0.0.0:8001", "Comma separated list of CORS allowed origins")
+
+		// external proposal data
 		proposalsPath       = flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
 		fundsPath           = flag.String("fund", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"fund.csv", "CSV full path (filename) to load FUND info from")
 		dumbGenesisDataPath = flag.String("dumbdata", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"dumb_genesis_data.yaml", "YAML full path (filename) to load dumb genesis funds from")
-		explorerEnabled     = flag.Bool("explorer", true, "Enable/Disable explorer")
-		restCorsAllowed     = flag.String("cors", "http://127.0.0.1:8000,http://127.0.0.1:8001,http://localhost:8000,http://localhost:8801,http://0.0.0.0:8000,http://0.0.0.0:8001", "Comma separated list of CORS allowed origins")
+
+		// vote and committee related timing
+		voteStartFlag    = flag.String("voteStart", "", "Vote start time in '2006-01-02T15:04:05-0700' format. If not set 'genesisTime' will be used")
+		voteEndFlag      = flag.String("voteEnd", "", "Vote end time in '2006-01-02T15:04:05-0700' format. If not set 'voteDuration' will be used")
+		committeeEndFlag = flag.String("committeeEnd", "", "Committee end time in '2006-01-02T15:04:05-0700' format. If not set 'committeeDuration' will be used")
+
+		voteDurationFlag      = flag.String("voteDuration", "144h", "Voting period duration. Ignored if 'voteEnd' is set")
+		committeeDurationFlag = flag.String("committeeDuration", "24h", "Committee period duration. Ignored if 'committeeEnd' is set")
+
+		// genesis (block0) settings
+		genesisTimeFlag = flag.String("genesisTime", "", "Genesis time in '2006-01-02T15:04:05-0700' format (default \"Now()\")")
+		slotDurFlag     = flag.String("slotDuration", "2s", "Slot period duration. 1s-255s")
+		epochDurFlag    = flag.String("epochDuration", "24h", "Epoch period duration")
+		bftLeaders      = flag.Uint("bftLeaders", 1, "Number of BFT Leaders. SK/PK keys will be autogenerated. min: 1")
 	)
 
 	flag.Parse()
 
-	if *proxyAddrPort == "" || *restAddrPort == "" || *nodePort == 0 || *proposalsPath == "" || *fundsPath == "" || *dumbGenesisDataPath == "" {
-		flag.Usage()
+	if *genesisTimeFlag == "" {
+		*genesisTimeFlag = time.Now().UTC().Format("2006-01-02T15:04:05-0700")
 	}
-	err := loadProposals(*proposalsPath)
+	genesisTime, err := time.Parse("2006-01-02T15:04:05-0700", *genesisTimeFlag)
+	kit.FatalOn(err, "genesisTime")
+
+	slotDur, err := time.ParseDuration(*slotDurFlag)
+	kit.FatalOn(err, "slotDuration")
+	switch {
+	case slotDur == 0:
+		log.Fatalf("[%s] - cannot be 0", "slotDuration")
+	case slotDur%time.Second > 0:
+		log.Fatalf("[%s] - smallest unit is [1s]", "slotDuration")
+	case slotDur > 255*time.Second:
+		log.Fatalf("[%s] - max allowed value is [255s]", "slotDuration")
+	}
+
+	epochDur, err := time.ParseDuration(*epochDurFlag)
+	kit.FatalOn(err, "epochDuration")
+	switch {
+	case epochDur == 0:
+		log.Fatalf("[%s] - cannot be 0", "epochDuration")
+	case epochDur%time.Second > 0:
+		log.Fatalf("[%s] - smallest unit is [1s]", "epochDuration")
+	case epochDur%slotDur > 0:
+		log.Fatalf("[%s: %s] - should be multiple of [%s: %s].", "epochDuration", epochDur.String(), "SlotDuration", slotDur.String())
+	}
+
+	voteDur, err := time.ParseDuration(*voteDurationFlag)
+	kit.FatalOn(err, "voteDuration")
+	switch {
+	case voteDur == 0:
+		log.Fatalf("[%s] - cannot be 0", "voteDuration")
+	case voteDur%time.Second > 0:
+		log.Fatalf("[%s] - smallest unit is [1s]", "voteDuration")
+	case voteDur%slotDur > 0:
+		log.Fatalf("[%s: %s] - should be multiple of [%s: %s].", "voteDuration", voteDur.String(), "SlotDuration", slotDur.String())
+	}
+
+	committeeDur, err := time.ParseDuration(*committeeDurationFlag)
+	kit.FatalOn(err, "committeeDuration")
+	switch {
+	case committeeDur == 0:
+		log.Fatalf("[%s] - cannot be 0", "committeeDuration")
+	case committeeDur%time.Second > 0:
+		log.Fatalf("[%s] - smallest unit is [1s]", "committeeDuration")
+	case committeeDur%slotDur > 0:
+		log.Fatalf("[%s: %s] - should be multiple of [%s: %s].", "committeeDuration", committeeDur.String(), "SlotDuration", slotDur.String())
+	}
+
+	if *voteStartFlag == "" {
+		*voteStartFlag = *genesisTimeFlag
+	}
+	voteStartTime, err := time.Parse("2006-01-02T15:04:05-0700", *voteStartFlag)
+	kit.FatalOn(err, "voteStartTime")
+	switch {
+	case voteStartTime.Sub(genesisTime) < 0:
+		log.Fatalf("%s: [%s] can't be smaller than %s: [%s]", "voteStart", *voteStartFlag, "genesisTime", *genesisTimeFlag)
+	case voteStartTime.Sub(genesisTime)%slotDur != 0:
+		log.Fatalf("%s: [%s] needs to have %s: [%s] steps from %s: [%s]", "voteStart", *voteStartFlag, "SlotDuration", slotDur.String(), "genesisTime", *genesisTimeFlag)
+	}
+
+	if *voteEndFlag == "" {
+		*voteEndFlag = voteStartTime.Add(voteDur).Format("2006-01-02T15:04:05-0700")
+	}
+	voteEndTime, err := time.Parse("2006-01-02T15:04:05-0700", *voteEndFlag)
+	kit.FatalOn(err, "voteEndTime")
+	switch {
+	case voteEndTime.Sub(voteStartTime) < 0:
+		log.Fatalf("%s: [%s] can't be smaller than %s: [%s]", "voteEnd", *voteEndFlag, "voteStart", *voteStartFlag)
+	case voteEndTime.Sub(genesisTime)%slotDur != 0:
+		log.Fatalf("%s: [%s] needs to have %s: [%s] steps from %s: [%s]", "voteEnd", *voteEndFlag, "SlotDuration", slotDur.String(), "genesisTime", *genesisTimeFlag)
+	}
+
+	if *committeeEndFlag == "" {
+		*committeeEndFlag = voteEndTime.Add(committeeDur).Format("2006-01-02T15:04:05-0700")
+	}
+	committeeEndTime, err := time.Parse("2006-01-02T15:04:05-0700", *committeeEndFlag)
+	kit.FatalOn(err, "committeeEndTime")
+	switch {
+	case committeeEndTime.Sub(voteEndTime) < 0:
+		log.Fatalf("%s: [%s] can't be smaller than %s: [%s]", "committeeEnd", *committeeEndFlag, "voteEnd", *voteEndFlag)
+	case committeeEndTime.Sub(genesisTime)%slotDur != 0:
+		log.Fatalf("%s: [%s] needs to have %s: [%s] steps from %s: [%s]", "committeeEnd", *committeeEndFlag, "SlotDuration", slotDur.String(), "genesisTime", *genesisTimeFlag)
+	}
+
+	voteStart := ToChainTime(
+		genesisTime.Unix(),
+		uint8(slotDur.Seconds()),
+		uint32(epochDur/slotDur),
+		voteStartTime.Unix(),
+	)
+
+	voteEnd := ToChainTime(
+		genesisTime.Unix(),
+		uint8(slotDur.Seconds()),
+		uint32(epochDur/slotDur),
+		voteEndTime.Unix(),
+	)
+
+	committeeEnd := ToChainTime(
+		genesisTime.Unix(),
+		uint8(slotDur.Seconds()),
+		uint32(epochDur/slotDur),
+		committeeEndTime.Unix(),
+	)
+
+	switch {
+	case *proposalsPath == "":
+		log.Fatalf("[%s] - not provided", "proposals file")
+	case *fundsPath == "":
+		log.Fatalf("[%s] - not provided", "fund file")
+		//
+	case *bftLeaders == 0:
+		log.Fatalf("[%s: %d] - wrong value", "bftLeaders", *bftLeaders)
+		//
+	case *proxyAddrPort == "":
+		log.Fatalf("[%s] - not set", "proxy")
+	case *restAddrPort == "":
+		log.Fatalf("[%s] - not set", "rest")
+	case *nodeAddrPort == "":
+		log.Fatalf("[%s] - not set", "node")
+	}
+
+	nodeListen := strings.Split(*nodeAddrPort, ":")
+	nodeAddr := nodeListen[0]
+	nodePort, err := strconv.Atoi(nodeListen[1])
+	kit.FatalOn(err, "nodePort")
+
+	err = loadProposals(*proposalsPath)
 	kit.FatalOn(err, "loadProposals")
 
 	err = loadFundInfo(*fundsPath)
@@ -140,7 +274,7 @@ func main() {
 
 		// P2P
 		p2pIPver, p2pProto           = "ip4", "tcp"
-		p2pListenAddr, p2pListenPort = "127.0.0.11", int(*nodePort) // 9001
+		p2pListenAddr, p2pListenPort = nodeAddr, nodePort
 		p2pListenAddress             = "/" + p2pIPver + "/" + p2pListenAddr + "/" + p2pProto + "/" + strconv.Itoa(p2pListenPort)
 
 		// General
@@ -199,19 +333,22 @@ func main() {
 	}
 
 	// set/change config params
-	block0cfg.BlockchainConfiguration.Block0Date = time.Now().UTC().Unix() // block0Date()
+	block0cfg.BlockchainConfiguration.Block0Date = genesisTime.Unix()
 	block0cfg.BlockchainConfiguration.Block0Consensus = consensus
 	block0cfg.BlockchainConfiguration.Discrimination = block0Discrimination
 
-	block0cfg.BlockchainConfiguration.SlotDuration = 1
-	block0cfg.BlockchainConfiguration.SlotsPerEpoch = 21_600
+	block0cfg.BlockchainConfiguration.SlotDuration = uint8(slotDur.Seconds())    // 2
+	block0cfg.BlockchainConfiguration.SlotsPerEpoch = uint32(epochDur / slotDur) // 43_200
 
-	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 200
-	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 10
-	block0cfg.BlockchainConfiguration.LinearFees.Constant = 100
+	block0cfg.BlockchainConfiguration.LinearFees.Certificate = 0 // 10_000
+	block0cfg.BlockchainConfiguration.LinearFees.Coefficient = 0 // 100_000
+	block0cfg.BlockchainConfiguration.LinearFees.Constant = 0    // 200_000
 
-	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVoteCast = 10_000_000
-	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVotePlan = 100_000_000
+	block0cfg.BlockchainConfiguration.LinearFees.PerCertificateFees.CertificatePoolRegistration = 0 // 500_000_000
+	block0cfg.BlockchainConfiguration.LinearFees.PerCertificateFees.CertificateStakeDelegation = 0  // 400_000
+
+	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVoteCast = 0 // 10_000_000
+	block0cfg.BlockchainConfiguration.LinearFees.PerVoteCertificateFees.CertificateVotePlan = 0 // 100_000_000
 
 	block0cfg.BlockchainConfiguration.FeesGoTo = "treasury"
 
@@ -239,8 +376,7 @@ func main() {
 	// Calculate nr of needed voteplans since there is a limit of proposals a plan can have (255)
 	// TODO: change to take in consideration also payload (we have only Public for now)
 	votePlansNeeded := votePlansNeeded(proposalsTot, votePlanProposalsMax)
-	var votePlans = make([]ChainVotePlan, votePlansNeeded)
-	// TODO: ose only this one instead off votePlans
+
 	var jcliVotePlans = make([]jcliVotePlan, votePlansNeeded)
 
 	funds.First().Voteplans = make([]loader.ChainVotePlan, votePlansNeeded)
@@ -256,16 +392,6 @@ func main() {
 		proposal.ChainProposal.ExternalID = hex.EncodeToString(id[:])
 
 		// add proposal hash to the respective voteplan internal container
-		votePlans[vpIdx].proposalID = append(votePlans[vpIdx].proposalID, proposal.ChainProposal.ExternalID)
-		/*
-			// We could insert also here, but do it later when we have also VotePlanID
-			proposal.ChainVotePlan.VoteStart = voteStart
-			proposal.ChainVotePlan.VoteEnd = voteEnd
-			proposal.ChainVotePlan.CommitteeEnd = committeeEnd
-			proposal.ChainProposal.Index = uint8(len(votePlans[vpIdx].proposalID))
-		*/
-
-		// TODO: ose only this one instead off votePlans
 		jcliVotePlans[vpIdx].Proposals = append(
 			jcliVotePlans[vpIdx].Proposals,
 			jcliProposal{
@@ -274,17 +400,11 @@ func main() {
 				Action:     "off_chain",
 			},
 		)
-
 	}
 
 	// Generate voteplan certificates and id
-	for i := range votePlans {
-		votePlans[i].VoteStart = voteStart
-		votePlans[i].VoteEnd = voteEnd
-		votePlans[i].CommitteeEnd = committeeEnd
-		votePlans[i].Payload = "public"
+	for i := range jcliVotePlans {
 
-		// TODO: ose only this one instead off votePlans
 		jcliVotePlans[i].VoteStart = voteStart
 		jcliVotePlans[i].VoteEnd = voteEnd
 		jcliVotePlans[i].CommitteeEnd = committeeEnd
@@ -302,59 +422,44 @@ func main() {
 		cert, err = jcli.CertificateSign(cert, []string{bftSecretFile}, "", "")
 		kit.FatalOn(err, "CertificateSign:", kit.B2S(cert))
 
-		votePlans[i].Certificate = kit.B2S(cert)
-		votePlans[i].VotePlanID = kit.B2S(id)
+		jcliVotePlans[i].Certificate = kit.B2S(cert)
+		jcliVotePlans[i].VotePlanID = kit.B2S(id)
 
 		// Vote Plans add certificate to block0
-		err = block0cfg.AddInitialCertificate(votePlans[i].Certificate)
+		err = block0cfg.AddInitialCertificate(jcliVotePlans[i].Certificate)
 		kit.FatalOn(err, "AddInitialCertificate")
 
-		voteStartUnix := votePlans[i].VoteStart.ToSeconds(
-			int(block0cfg.BlockchainConfiguration.SlotDuration),
-			int(block0cfg.BlockchainConfiguration.SlotsPerEpoch),
-		) + block0cfg.BlockchainConfiguration.Block0Date
-
-		voteEndUnix := votePlans[i].VoteEnd.ToSeconds(
-			int(block0cfg.BlockchainConfiguration.SlotDuration),
-			int(block0cfg.BlockchainConfiguration.SlotsPerEpoch),
-		) + block0cfg.BlockchainConfiguration.Block0Date
-
-		committeeEndUnix := votePlans[i].CommitteeEnd.ToSeconds(
-			int(block0cfg.BlockchainConfiguration.SlotDuration),
-			int(block0cfg.BlockchainConfiguration.SlotsPerEpoch),
-		) + block0cfg.BlockchainConfiguration.Block0Date
-
-		for pi, propHash := range votePlans[i].proposalID {
+		for pi, prop := range jcliVotePlans[i].Proposals {
 			// TODO: fix this search
 			proposal := datastore.FilterSingle(proposals.All(), func(v *loader.ProposalData) bool {
-				return v.ChainProposal.ExternalID == propHash
+				return v.ChainProposal.ExternalID == prop.ExternalID
 			})
 
-			proposal.ChainVotePlan.VotePlanID = votePlans[i].VotePlanID
+			proposal.ChainVotePlan.VotePlanID = jcliVotePlans[i].VotePlanID
 			proposal.ChainProposal.Index = uint8(pi)
 
-			proposal.ChainVotePlan.VoteStart = time.Unix(voteStartUnix, 0).String()       // strconv.FormatInt(voteStartUnix, 10)
-			proposal.ChainVotePlan.VoteEnd = time.Unix(voteEndUnix, 0).String()           // strconv.FormatInt(voteEndUnix, 10)
-			proposal.ChainVotePlan.CommitteeEnd = time.Unix(committeeEndUnix, 0).String() // strconv.FormatInt(committeeEndUnix, 10)
+			proposal.ChainVotePlan.VoteStart = voteStartTime.String()       // time.Unix(voteStartUnix, 0).String()       // strconv.FormatInt(voteStartUnix, 10)
+			proposal.ChainVotePlan.VoteEnd = voteEndTime.String()           // time.Unix(voteEndUnix, 0).String()           // strconv.FormatInt(voteEndUnix, 10)
+			proposal.ChainVotePlan.CommitteeEnd = committeeEndTime.String() // time.Unix(committeeEndUnix, 0).String() // strconv.FormatInt(committeeEndUnix, 10)
 
 		}
 
-		funds.First().Voteplans[i].VotePlanID = votePlans[i].VotePlanID
-		funds.First().Voteplans[i].VoteStart = time.Unix(voteStartUnix, 0).String()
-		funds.First().Voteplans[i].VoteEnd = time.Unix(voteEndUnix, 0).String()
-		funds.First().Voteplans[i].CommitteeEnd = time.Unix(committeeEndUnix, 0).String()
-		funds.First().Voteplans[i].Payload = votePlans[i].Payload
+		funds.First().Voteplans[i].VotePlanID = jcliVotePlans[i].VotePlanID
+		funds.First().Voteplans[i].VoteStart = voteStartTime.String()       // time.Unix(voteStartUnix, 0).String()
+		funds.First().Voteplans[i].VoteEnd = voteEndTime.String()           // time.Unix(voteEndUnix, 0).String()
+		funds.First().Voteplans[i].CommitteeEnd = committeeEndTime.String() // time.Unix(committeeEndUnix, 0).String()
+		funds.First().Voteplans[i].Payload = jcliVotePlans[i].Payload
 	}
 
 	block0Yaml, err := block0cfg.ToYaml()
 	kit.FatalOn(err)
 
-	bulkDumbData, _ := ioutil.ReadFile(*dumbGenesisDataPath)
-	// kit.FatalOn(err)
-	// ignore any error since that data is just to increase block0 size for testing
-
-	if len(bulkDumbData) > 0 {
-		block0Yaml = append(block0Yaml, bulkDumbData...)
+	if *dumbGenesisDataPath != "" {
+		bulkDumbData, err := ioutil.ReadFile(*dumbGenesisDataPath)
+		kit.FatalOn(err)
+		if len(bulkDumbData) > 0 {
+			block0Yaml = append(block0Yaml, bulkDumbData...)
+		}
 	}
 
 	// need this file for starting the node (--genesis-block)
@@ -467,7 +572,7 @@ func main() {
 	log.Printf("VIT - BFT Genesis Hash: %s\n", kit.B2S(block0Hash))
 	log.Println()
 	log.Printf("VIT - BFT Genesis: %s - %d", "COMMITTEE", len(block0cfg.BlockchainConfiguration.Committees))
-	log.Printf("VIT - BFT Genesis: %s - %d", "VOTEPLANS", len(votePlans))
+	log.Printf("VIT - BFT Genesis: %s - %d", "VOTEPLANS", len(jcliVotePlans))
 	log.Printf("VIT - BFT Genesis: %s - %d", "PROPOSALS", proposals.Total())
 	log.Println()
 	log.Printf("VIT - BFT Genesis: %s", "Wallets available for recovery")
