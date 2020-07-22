@@ -132,6 +132,7 @@ func main() {
 		// extra
 		allowNodeRestart = flag.Bool("allowNodeRestart", true, "Allows to stop the node started from the service and restart it manually")
 		shutdownNode     = flag.Bool("shutdownNode", true, "When exiting try node shutdown in case the node was restarted manually")
+		dateTimeFormat   = flag.String("timeFormat", time.RFC3339, "Date/Time format that will be used for display (go lang format), ex: \"2006-01-02 15:04:05 -0700 MST\"")
 
 		// version info
 		version = flag.Bool("version", false, "Prints current app version and build info")
@@ -144,6 +145,10 @@ func main() {
 		fmt.Printf("Commit  - %s\n", CommitHash)
 		fmt.Printf("Date    - %s\n", BuildDate)
 		os.Exit(0)
+	}
+
+	if *dateTimeFormat == "" {
+		*dateTimeFormat = time.RFC3339
 	}
 
 	if *genesisTimeFlag == "" {
@@ -454,37 +459,37 @@ func main() {
 			proposal.ChainVotePlan.VotePlanID = jcliVotePlans[i].VotePlanID
 			proposal.ChainProposal.Index = uint8(pi)
 
-			proposal.ChainVotePlan.VoteStart = voteStartTime.Format(time.RFC3339)
-			proposal.ChainVotePlan.VoteEnd = voteEndTime.Format(time.RFC3339)
-			proposal.ChainVotePlan.CommitteeEnd = committeeEndTime.Format(time.RFC3339)
+			proposal.ChainVotePlan.VoteStart = voteStartTime.Format(*dateTimeFormat)
+			proposal.ChainVotePlan.VoteEnd = voteEndTime.Format(*dateTimeFormat)
+			proposal.ChainVotePlan.CommitteeEnd = committeeEndTime.Format(*dateTimeFormat)
 
 		}
 
 		funds.First().Voteplans[i].VotePlanID = jcliVotePlans[i].VotePlanID
-		funds.First().Voteplans[i].VoteStart = voteStartTime.Format(time.RFC3339)
-		funds.First().Voteplans[i].VoteEnd = voteEndTime.Format(time.RFC3339)
-		funds.First().Voteplans[i].CommitteeEnd = committeeEndTime.Format(time.RFC3339)
+		funds.First().Voteplans[i].VoteStart = voteStartTime.Format(*dateTimeFormat)
+		funds.First().Voteplans[i].VoteEnd = voteEndTime.Format(*dateTimeFormat)
+		funds.First().Voteplans[i].CommitteeEnd = committeeEndTime.Format(*dateTimeFormat)
 		funds.First().Voteplans[i].Payload = jcliVotePlans[i].Payload
 	}
 
 	/* TODO: TMP - remove once properly defined */
 
 	if funds.First().StartTime == "" {
-		funds.First().StartTime = voteStartTime.Format(time.RFC3339)
+		funds.First().StartTime = voteStartTime.Format(*dateTimeFormat)
 	}
 	if funds.First().EndTime == "" {
-		funds.First().EndTime = voteEndTime.Format(time.RFC3339)
+		funds.First().EndTime = voteEndTime.Format(*dateTimeFormat)
 	}
 
 	if funds.First().VotingPowerInfo == "" {
 		funds.First().VotingPowerInfo = funds.First().StartTime
 	}
 	if funds.First().RewardsInfo == "" {
-		funds.First().RewardsInfo = committeeEndTime.Add(epochDur).Format(time.RFC3339)
+		funds.First().RewardsInfo = committeeEndTime.Add(epochDur).Format(*dateTimeFormat)
 	}
 
 	if funds.First().NextStartTime == "" {
-		funds.First().NextStartTime = committeeEndTime.Add(2 * epochDur).Format(time.RFC3339)
+		funds.First().NextStartTime = committeeEndTime.Add(2 * epochDur).Format(*dateTimeFormat)
 	}
 	/* TODO: TMP - remove once properly defined */
 
