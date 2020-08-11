@@ -7,6 +7,7 @@ type ProposalsStore interface {
 	All() *[]*loader.ProposalData
 	SearchID(internalID string) *loader.ProposalData
 	Total() int
+	Payloads() map[string]int
 }
 
 type FundsStore interface {

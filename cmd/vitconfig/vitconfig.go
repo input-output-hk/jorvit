@@ -73,7 +73,7 @@ func ToChainTime(block0Time int64, SlotDuration uint8, SlotsPerEpoch uint32, dat
 }
 
 var (
-	votePlanProposalsMax = 254
+	votePlanProposalsMax = 256
 	leaderSK             = []byte("ed25519_sk1pl4vp0grkl2puspv4c3hwhz89r68yjyzalc78pyt0pujpmk8mxkq6kpc5j")
 	wallets              = wallet.SampleWallets()
 )
@@ -391,36 +391,44 @@ func main() {
 		}
 	}
 
-	// Total nr of proposals
-	proposalsTot := proposals.Total()
+	// Proposals list per payload type
+	payloadProposals := make(map[string][]*loader.ProposalData)
+	for _, p := range *proposals.All() {
+		payloadProposals[p.VoteType] = append(payloadProposals[p.VoteType], p)
+	}
 
-	// Calculate nr of needed voteplans since there is a limit of proposals a plan can have (255)
-	// TODO: change to take in consideration also payload (we have only Public for now)
-	votePlansNeeded := votePlansNeeded(proposalsTot, votePlanProposalsMax)
+	// Calculate nr of needed voteplans since there is a limit of proposals a plan can have (256)
+	// Taking in consideration also payload (although we have only public for now)
+	vpNeeded := 0 //votePlansNeeded(proposalsTot, votePlanProposalsMax)
+	for _, vpp := range payloadProposals {
+		vpNeeded += votePlansNeeded(len(vpp), votePlanProposalsMax)
+	}
 
-	var jcliVotePlans = make([]jcliVotePlan, votePlansNeeded)
+	jcliVotePlans := make([]jcliVotePlan, vpNeeded)
+	funds.First().Voteplans = make([]loader.ChainVotePlan, vpNeeded)
 
-	funds.First().Voteplans = make([]loader.ChainVotePlan, votePlansNeeded)
+	for pt := range payloadProposals {
+		// Generate proposals hash and associate it to a voteplan
+		for i, proposal := range payloadProposals[pt] {
+			// retrieve the voteplan intenal idx based on the proposal idx we are at
+			// TODO: change to take in consideration also payload (we have only Public for now)
+			vpi := votePlanIndex(i, votePlanProposalsMax)
 
-	// Generate proposals hash and associate it to a voteplan
-	for i, proposal := range *proposals.All() {
-		// retrieve the voteplan intenal idx based on the proposal idx we are at
-		// TODO: change to take in consideration also payload (we have only Public for now)
-		vpIdx := votePlanIndex(i, votePlanProposalsMax)
+			// hash the proposal (TODO: decide what to hash in production)
+			externalID := blake2b.Sum256([]byte(proposal.Proposal.ID + proposal.InternalID))
+			proposal.ChainProposal.ExternalID = hex.EncodeToString(externalID[:])
 
-		// hash the proposal (TODO: decide what to hash in production)
-		id := blake2b.Sum256([]byte(proposal.Proposal.ID + proposal.InternalID))
-		proposal.ChainProposal.ExternalID = hex.EncodeToString(id[:])
-
-		// add proposal hash to the respective voteplan internal container
-		jcliVotePlans[vpIdx].Proposals = append(
-			jcliVotePlans[vpIdx].Proposals,
-			jcliProposal{
-				ExternalID: proposal.ChainProposal.ExternalID,
-				Options:    uint8(len(proposal.ChainProposal.VoteOptions)),
-				Action:     "off_chain",
-			},
-		)
+			// add proposal hash to the respective voteplan internal container
+			jcliVotePlans[vpi].Proposals = append(
+				jcliVotePlans[vpi].Proposals,
+				jcliProposal{
+					ExternalID: proposal.ChainProposal.ExternalID,
+					Options:    uint8(len(proposal.ChainProposal.VoteOptions)),
+					Action:     proposal.VoteAction,
+				},
+			)
+			jcliVotePlans[vpi].Payload = pt // yeah I know ...
+		}
 	}
 
 	// Generate voteplan certificates and id
@@ -429,13 +437,12 @@ func main() {
 		jcliVotePlans[i].VoteStart = voteStart
 		jcliVotePlans[i].VoteEnd = voteEnd
 		jcliVotePlans[i].CommitteeEnd = committeeEnd
-		jcliVotePlans[i].Payload = "public"
 
-		stdinConfig, err := json.Marshal(jcliVotePlans[i])
+		stdinConfig, err := json.MarshalIndent(jcliVotePlans[i], "", " ")
 		kit.FatalOn(err, "json.Marshal VotePlan Config")
 
 		cert, err := jcli.CertificateNewVotePlan(stdinConfig, "", "")
-		kit.FatalOn(err, "CertificateNewVotePlan")
+		kit.FatalOn(err, "CertificateNewVotePlan", kit.B2S(cert))
 
 		id, err := jcli.CertificateGetVotePlanID(cert, "", "")
 		kit.FatalOn(err, "CertificateGetVotePlanID:", kit.B2S(id))
@@ -450,14 +457,15 @@ func main() {
 		err = block0cfg.AddInitialCertificate(jcliVotePlans[i].Certificate)
 		kit.FatalOn(err, "AddInitialCertificate")
 
+		// Update proposals
 		for pi, prop := range jcliVotePlans[i].Proposals {
 			// TODO: fix this search
 			proposal := datastore.FilterSingle(proposals.All(), func(v *loader.ProposalData) bool {
 				return v.ChainProposal.ExternalID == prop.ExternalID
 			})
 
-			proposal.ChainVotePlan.VotePlanID = jcliVotePlans[i].VotePlanID
 			proposal.ChainProposal.Index = uint8(pi)
+			proposal.ChainVotePlan.VotePlanID = jcliVotePlans[i].VotePlanID
 
 			proposal.ChainVotePlan.VoteStart = voteStartTime.Format(*dateTimeFormat)
 			proposal.ChainVotePlan.VoteEnd = voteEndTime.Format(*dateTimeFormat)
@@ -465,6 +473,7 @@ func main() {
 
 		}
 
+		// Update Fund info
 		funds.First().Voteplans[i].VotePlanID = jcliVotePlans[i].VotePlanID
 		funds.First().Voteplans[i].VoteStart = voteStartTime.Format(*dateTimeFormat)
 		funds.First().Voteplans[i].VoteEnd = voteEndTime.Format(*dateTimeFormat)

@@ -20,9 +20,9 @@ type Proposal struct {
 }
 
 type ProposalCategory struct {
-	CategoryID   string `json:"category_id"`
-	CategoryName string `json:"category_name"         csv:"category_name"`
-	CategoryDesc string `json:"category_description"`
+	CategoryID   string `json:"proposal_category_id"`
+	CategoryName string `json:"proposal_category_name"         csv:"category_name"`
+	CategoryDesc string `json:"proposal_category_description"`
 }
 
 type Proposer struct {
@@ -35,11 +35,13 @@ type ChainProposal struct {
 	ExternalID  string           `json:"chain_proposal_id"    csv:"chain_proposal_id"`
 	Index       uint8            `json:"chain_proposal_index" csv:"chain_proposal_index"`
 	VoteOptions ChainVoteOptions `json:"chain_vote_options"   csv:"chain_vote_options"`
+	VoteType    string           `json:"-"                    csv:"chain_vote_type"`
+	VoteAction  string           `json:"-"                    csv:"chain_vote_action"`
 }
 
 type ChainVoteOptions map[string]uint8
 
-func (cvo *ChainVoteOptions) UnmarshalCSV(csv string) (err error) {
+func (cvo *ChainVoteOptions) UnmarshalCSV(csv string) error {
 	options := strings.Split(csv, ",")
 	*cvo = make(map[string]uint8, len(options))
 	for i, opt := range options {
@@ -54,6 +56,21 @@ func (cvo *ChainVoteOptions) MarshalCSV() (string, error) {
 	}
 	return strings.Join(opts, ","), nil
 }
+
+/*
+type DateTime struct{ time.Time }
+
+// Convert the internal date as CSV string
+func (date *DateTime) MarshalCSV() (int64, error) {
+	return date.Time.Unix(), nil
+}
+
+// Convert the CSV string as internal date
+func (date *DateTime) UnmarshalCSV(csv string) (err error) {
+	date.Time, err = time.Parse(time.RFC3339, csv)
+	return err
+}
+*/
 
 type ChainVotePlan struct {
 	VotePlanID   string `json:"chain_voteplan_id"       csv:"chain_voteplan_id"`
