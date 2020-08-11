@@ -22,8 +22,6 @@ func (b *Proposals) Initialize(filename string) error {
 		return err
 	}
 
-	payloads := make(map[string]int)
-
 	for _, v := range *b.List {
 		if v.VoteAction == "" {
 			v.VoteAction = "off_chain"
@@ -37,10 +35,6 @@ func (b *Proposals) Initialize(filename string) error {
 			return fmt.Errorf("%s - expected to be one of (%s, %s) - but [%s] provided", "chain_vote_type", "public", "private", v.VoteType)
 		}
 		v.ChainVotePlan.Payload = v.VoteType
-		payloads[v.VoteType] += 1
-		if len(payloads) > 1 {
-			return fmt.Errorf("%s - expected to be only one of (%s, %s) for the whole list, but [%s] provided. Please split your list so it contains only one (%s)", "chain_vote_type", "public", "private", "multiple", "chain_vote_type")
-		}
 	}
 	return nil
 }
