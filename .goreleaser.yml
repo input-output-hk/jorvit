@@ -7,18 +7,42 @@ before:
     - go mod download
 
 builds:
-  -
+  - id: x-linux
+    ldflags: -s -w -X main.Version={{ .Version }} -X main.BuildDate={{ .Date }} -X main.CommitHash={{ .ShortCommit }}
+    binary: jorvit
     main: ./cmd/vitconfig/vitconfig.go
     env:
       - CGO_ENABLED=0
     goos:
-      - darwin
       - linux
-      - windows
     goarch:
       - amd64
       - arm64
       - arm
+  - id: x-darwin-amd64
+    ldflags: -s -w -X main.Version={{ .Version }} -X main.BuildDate={{ .Date }} -X main.CommitHash={{ .ShortCommit }}
+    binary: jorvit
+    main: ./cmd/vitconfig/vitconfig.go
+    env:
+      - CGO_ENABLED=0
+      # - CC=o64-clang
+      # - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+  - id: x-windows-amd64
+    ldflags: -s -w -X main.Version={{ .Version }} -X main.BuildDate={{ .Date }} -X main.CommitHash={{ .ShortCommit }}
+    binary: jorvit
+    main: ./cmd/vitconfig/vitconfig.go
+    env:
+      - CGO_ENABLED=0
+      # - CC=x86_64-w64-mingw32-gcc
+      # - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
 
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
@@ -37,5 +61,19 @@ archives:
       - assets/**/*
       - jor_bins/*
 
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+    - '^dev:'
+    - 'README'
+    - Merge pull request
+    - Merge branch
+
 checksum:
   name_template: 'checksums.txt'
+
+signs:
+  - artifacts: checksum
