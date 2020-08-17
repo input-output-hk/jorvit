@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gocarina/gocsv"
 	"github.com/input-output-hk/jorvit/internal/datastore"
 	"github.com/input-output-hk/jorvit/internal/kit"
 	"github.com/input-output-hk/jorvit/internal/loader"
@@ -39,11 +40,11 @@ var (
 type jcliProposal struct {
 	ExternalID string `json:"external_id"`
 	Options    uint8  `json:"options"`
-	Action     string `json:"action"` // set it "off_chain" for now
+	Action     string `json:"action"`
 }
 
 type jcliVotePlan struct {
-	Payload      string         `json:"payload_type"` // set it "public" for now
+	Payload      string         `json:"payload_type"`
 	VoteStart    ChainTime      `json:"vote_start"`
 	VoteEnd      ChainTime      `json:"vote_end"`
 	CommitteeEnd ChainTime      `json:"committee_end"`
@@ -134,11 +135,19 @@ func main() {
 		shutdownNode     = flag.Bool("shutdownNode", true, "When exiting try node shutdown in case the node was restarted manually")
 		dateTimeFormat   = flag.String("timeFormat", time.RFC3339, "Date/Time format that will be used for display (go lang format), ex: \"2006-01-02 15:04:05 -0700 MST\"")
 
+		// Dump raw data
+		dumpRaw = flag.String("dumpRaw", "", "Dump raw data like voteplan.json, voteplan.cert, funds.csv, voteplans.csv, proposals.csv")
+
 		// version info
 		version = flag.Bool("version", false, "Prints current app version and build info")
 	)
 
 	flag.Parse()
+
+	if *dumpRaw != "" {
+		*dumpRaw, err = filepath.Abs(*dumpRaw)
+		kit.FatalOn(err)
+	}
 
 	if *version {
 		fmt.Printf("Version - %s\n", Version)
@@ -338,7 +347,7 @@ func main() {
 	kit.FatalOn(err, kit.B2S(leaderPK))
 
 	// Needed later on to sign
-	bftSecretFile := workingDir + string(os.PathSeparator) + "bft_secret.key"
+	bftSecretFile := filepath.Join(workingDir, "bft_secret.key")
 	err = ioutil.WriteFile(bftSecretFile, leaderSK, 0744)
 	kit.FatalOn(err)
 
@@ -405,16 +414,17 @@ func main() {
 	}
 
 	jcliVotePlans := make([]jcliVotePlan, vpNeeded)
-	funds.First().Voteplans = make([]loader.ChainVotePlan, vpNeeded)
+	funds.First().VotePlans = make([]loader.ChainVotePlan, vpNeeded)
 
 	for pt := range payloadProposals {
+
 		// Generate proposals hash and associate it to a voteplan
 		for i, proposal := range payloadProposals[pt] {
-			// retrieve the voteplan intenal idx based on the proposal idx we are at
-			// TODO: change to take in consideration also payload (we have only Public for now)
-			vpi := votePlanIndex(i, votePlanProposalsMax)
 
-			// hash the proposal (TODO: decide what to hash in production)
+			// retrieve the voteplan intenal index based on the proposal index we are at
+			vpi := i / votePlanProposalsMax
+
+			// tmp - hash the proposal (TODO: decide what to hash in production, file bytes ???)
 			externalID := blake2b.Sum256([]byte(proposal.Proposal.ID + proposal.InternalID))
 			proposal.ChainProposal.ExternalID = hex.EncodeToString(externalID[:])
 
@@ -427,7 +437,11 @@ func main() {
 					Action:     proposal.VoteAction,
 				},
 			)
-			jcliVotePlans[vpi].Payload = pt // yeah I know ...
+			// Set payload once
+			if jcliVotePlans[vpi].Payload == "" {
+				jcliVotePlans[vpi].Payload = pt
+			}
+
 		}
 	}
 
@@ -447,6 +461,22 @@ func main() {
 		id, err := jcli.CertificateGetVotePlanID(cert, "", "")
 		kit.FatalOn(err, "CertificateGetVotePlanID:", kit.B2S(id))
 
+		if *dumpRaw != "" {
+			vpj, err := os.Create(filepath.Join(*dumpRaw, "voteplan_"+kit.B2S(id)+".json"))
+			kit.FatalOn(err, "VotePlan json CREATE", kit.B2S(id))
+			_, err = vpj.Write(stdinConfig)
+			kit.FatalOn(err, "VotePlan json WRITE", kit.B2S(id))
+			err = vpj.Close()
+			kit.FatalOn(err, "VotePlan json CLOSE", kit.B2S(id))
+
+			vpc, err := os.Create(filepath.Join(*dumpRaw, "voteplan_"+kit.B2S(id)+".cert"))
+			kit.FatalOn(err, "VotePlan cert CREATE", kit.B2S(id))
+			_, err = vpc.Write(cert)
+			kit.FatalOn(err, "VotePlan cert WRITE", kit.B2S(id))
+			err = vpc.Close()
+			kit.FatalOn(err, "VotePlan cert CLOSE", kit.B2S(id))
+		}
+
 		cert, err = jcli.CertificateSign(cert, []string{bftSecretFile}, "", "")
 		kit.FatalOn(err, "CertificateSign:", kit.B2S(cert))
 
@@ -457,50 +487,82 @@ func main() {
 		err = block0cfg.AddInitialCertificate(jcliVotePlans[i].Certificate)
 		kit.FatalOn(err, "AddInitialCertificate")
 
-		// Update proposals
+		// Update Fund info with VotePlans Data
+		funds.First().VotePlans[i].VotePlanID = jcliVotePlans[i].VotePlanID
+		funds.First().VotePlans[i].VoteStart = voteStartTime.Format(*dateTimeFormat)
+		funds.First().VotePlans[i].VoteEnd = voteEndTime.Format(*dateTimeFormat)
+		funds.First().VotePlans[i].CommitteeEnd = committeeEndTime.Format(*dateTimeFormat)
+		funds.First().VotePlans[i].Payload = jcliVotePlans[i].Payload
+
+		funds.First().VotePlans[i].FundID = funds.First().FundID
+		funds.First().VotePlans[i].VpInternalID = strconv.Itoa(i + 1)
+
+		// Update proposals index and voteplan
 		for pi, prop := range jcliVotePlans[i].Proposals {
 			// TODO: fix this search
-			proposal := datastore.FilterSingle(proposals.All(), func(v *loader.ProposalData) bool {
-				return v.ChainProposal.ExternalID == prop.ExternalID
-			})
+			proposal := datastore.FilterSingle(
+				proposals.All(),
+				func(v *loader.ProposalData) bool {
+					return v.ChainProposal.ExternalID == prop.ExternalID
+				},
+			)
 
 			proposal.ChainProposal.Index = uint8(pi)
-			proposal.ChainVotePlan.VotePlanID = jcliVotePlans[i].VotePlanID
-
-			proposal.ChainVotePlan.VoteStart = voteStartTime.Format(*dateTimeFormat)
-			proposal.ChainVotePlan.VoteEnd = voteEndTime.Format(*dateTimeFormat)
-			proposal.ChainVotePlan.CommitteeEnd = committeeEndTime.Format(*dateTimeFormat)
-
+			proposal.ChainVotePlan = &(funds.First().VotePlans[i])
 		}
 
-		// Update Fund info
-		funds.First().Voteplans[i].VotePlanID = jcliVotePlans[i].VotePlanID
-		funds.First().Voteplans[i].VoteStart = voteStartTime.Format(*dateTimeFormat)
-		funds.First().Voteplans[i].VoteEnd = voteEndTime.Format(*dateTimeFormat)
-		funds.First().Voteplans[i].CommitteeEnd = committeeEndTime.Format(*dateTimeFormat)
-		funds.First().Voteplans[i].Payload = jcliVotePlans[i].Payload
 	}
-
+	//////////////////////////////////////////////
 	/* TODO: TMP - remove once properly defined */
-
 	if funds.First().StartTime == "" {
 		funds.First().StartTime = voteStartTime.Format(*dateTimeFormat)
 	}
 	if funds.First().EndTime == "" {
 		funds.First().EndTime = voteEndTime.Format(*dateTimeFormat)
 	}
-
 	if funds.First().VotingPowerInfo == "" {
 		funds.First().VotingPowerInfo = funds.First().StartTime
 	}
 	if funds.First().RewardsInfo == "" {
 		funds.First().RewardsInfo = committeeEndTime.Add(epochDur).Format(*dateTimeFormat)
 	}
-
 	if funds.First().NextStartTime == "" {
 		funds.First().NextStartTime = committeeEndTime.Add(2 * epochDur).Format(*dateTimeFormat)
 	}
 	/* TODO: TMP - remove once properly defined */
+	//////////////////////////////////////////////
+
+	if *dumpRaw != "" {
+		// FUNDS
+		fundsFile, err := os.Create(filepath.Join(*dumpRaw, "sql_funds.csv"))
+		kit.FatalOn(err, "Funds csv CREATE")
+		f := []*loader.FundData{funds.First()}
+		err = gocsv.MarshalFile(&f, fundsFile) // Use this to save the CSV back to the file
+		kit.FatalOn(err, "Funds csv WRITE")
+		err = fundsFile.Close()
+		kit.FatalOn(err, "Funds csv CLOSE")
+
+		// VOTEPLANS
+		votePlansFile, err := os.Create(filepath.Join(*dumpRaw, "sql_voteplans.csv"))
+		kit.FatalOn(err, "Voteplans csv CREATE")
+		vp := funds.First().VotePlans
+		err = gocsv.MarshalFile(&vp, votePlansFile)
+		kit.FatalOn(err, "Voteplans csv WRITE")
+		err = votePlansFile.Close()
+		kit.FatalOn(err, "Voteplans csv CLOSE")
+
+		// PROPOSALS
+		proposalsFile, err := os.Create(filepath.Join(*dumpRaw, "sql_proposals.csv"))
+		kit.FatalOn(err, "Proposals csv CREATE")
+		p := proposals.All()
+		err = gocsv.MarshalFile(p, proposalsFile)
+		kit.FatalOn(err, "Proposals csv WRITE")
+		err = proposalsFile.Close()
+		kit.FatalOn(err, "Proposals csv CLOSE")
+
+		log.Printf("VIT - important data are dumped at (%s)", *dumpRaw)
+		log.Println()
+	}
 
 	block0Yaml, err := block0cfg.ToYaml()
 	kit.FatalOn(err)
@@ -514,10 +576,10 @@ func main() {
 	}
 
 	// need this file for starting the node (--genesis-block)
-	block0BinFile := workingDir + string(os.PathSeparator) + "VIT-block0.bin"
+	block0BinFile := filepath.Join(workingDir, "VIT-block0.bin")
 
 	// keep also the text block0 config
-	block0TxtFile := workingDir + string(os.PathSeparator) + "VIT-block0.yaml"
+	block0TxtFile := filepath.Join(workingDir, "VIT-block0.yaml")
 
 	// block0BinFile will be created by jcli
 	block0Bin, err := jcli.GenesisEncode(block0Yaml, "", block0BinFile)
@@ -542,7 +604,7 @@ func main() {
 	kit.FatalOn(err)
 
 	// need this file for starting the node (--secret)
-	secretCfgFile := workingDir + string(os.PathSeparator) + "bft-secret.yaml"
+	secretCfgFile := filepath.Join(workingDir, "bft-secret.yaml")
 	err = ioutil.WriteFile(secretCfgFile, secretCfgYaml, 0644)
 	kit.FatalOn(err)
 
@@ -567,7 +629,7 @@ func main() {
 	kit.FatalOn(err)
 
 	// need this file for starting the node (--config)
-	nodeCfgFile := workingDir + string(os.PathSeparator) + "node-config.yaml"
+	nodeCfgFile := filepath.Join(workingDir, "node-config.yaml")
 	err = ioutil.WriteFile(nodeCfgFile, nodeCfgYaml, 0644)
 	kit.FatalOn(err)
 
@@ -657,10 +719,6 @@ func qrPrint(w []wallet.Wallet) {
 
 		fmt.Printf("\n%s\n%s\n", w[i], q.ToSmallString(false))
 	}
-}
-
-func votePlanIndex(i int, max int) int {
-	return i / max
 }
 
 func votePlansNeeded(proposalsTot int, max int) int {

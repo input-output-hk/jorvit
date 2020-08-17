@@ -20,9 +20,9 @@ type Proposal struct {
 }
 
 type ProposalCategory struct {
-	CategoryID   string `json:"proposal_category_id"`
-	CategoryName string `json:"proposal_category_name"         csv:"category_name"`
-	CategoryDesc string `json:"proposal_category_description"`
+	CategoryID   string `json:"category_id"          csv:"-"`
+	CategoryName string `json:"category_name"        csv:"category_name"`
+	CategoryDesc string `json:"category_description" csv:"-"`
 }
 
 type Proposer struct {
@@ -73,21 +73,22 @@ func (date *DateTime) UnmarshalCSV(csv string) (err error) {
 */
 
 type ChainVotePlan struct {
-	VotePlanID   string `json:"chain_voteplan_id"       csv:"chain_voteplan_id"`
-	VoteStart    string `json:"chain_vote_starttime"    csv:"chain_vote_starttime"`
-	VoteEnd      string `json:"chain_vote_endtime"      csv:"chain_vote_endtime"`
-	CommitteeEnd string `json:"chain_committee_endtime" csv:"chain_committee_endtime"`
-	Payload      string `json:"chain_voteplan_payload"  csv:"chain_voteplan_payload"`
-	FundID       string `json:"fund_id,omitempty"       csv:"fund_id"`
+	VpInternalID string `json:"-"                        csv:"id"`
+	VotePlanID   string `json:"chain_voteplan_id"        csv:"chain_voteplan_id"`
+	VoteStart    string `json:"chain_vote_start_time"    csv:"chain_vote_start_time"`
+	VoteEnd      string `json:"chain_vote_end_time"      csv:"chain_vote_end_time"`
+	CommitteeEnd string `json:"chain_committee_end_time" csv:"chain_committee_end_time"`
+	Payload      string `json:"chain_voteplan_payload"   csv:"chain_voteplan_payload"`
+	FundID       string `json:"fund_id"                  csv:"fund_id"`
 }
 
 type ProposalData struct {
 	InternalID       string `json:"internal_id" csv:"internal_id"`
-	ProposalCategory `json:"category"`
-	Proposal
-	Proposer      `json:"proposer"`
-	ChainProposal // `json:"chain_proposal"`
-	ChainVotePlan // `json:"chain_voteplan"`
+	ProposalCategory `json:"proposals_category"`
+	Proposal         //
+	Proposer         `json:"proposer"`
+	ChainProposal
+	*ChainVotePlan
 }
 
 func LoadData(r io.Reader) (*[]*ProposalData, error) {
@@ -97,7 +98,7 @@ func LoadData(r io.Reader) (*[]*ProposalData, error) {
 }
 
 type FundData struct {
-	FundID          string          `json:"fund_id,omitempty"    csv:"fund_id"`
+	FundID          string          `json:"id,omitempty"         csv:"id"`
 	Name            string          `json:"fund_name"            csv:"fund_name"`
 	Goal            string          `json:"fund_goal"            csv:"fund_goal"`
 	VotingPowerInfo string          `json:"voting_power_info"    csv:"voting_power_info"`
@@ -105,7 +106,7 @@ type FundData struct {
 	StartTime       string          `json:"fund_start_time"      csv:"fund_start_time"`
 	EndTime         string          `json:"fund_end_time"        csv:"fund_end_time"`
 	NextStartTime   string          `json:"next_fund_start_time" csv:"next_fund_start_time"`
-	Voteplans       []ChainVotePlan `json:"chain_vote_plans"`
+	VotePlans       []ChainVotePlan `json:"chain_vote_plans"     csv:"-"`
 }
 
 func LoadFundData(r io.Reader) (*[]*FundData, error) {
