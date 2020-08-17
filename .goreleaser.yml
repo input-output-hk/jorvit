@@ -75,5 +75,5 @@ changelog:
 checksum:
   name_template: 'checksums.txt'
 
-signs:
-  - artifacts: checksum
+#signs:
+#  - artifacts: checksum
