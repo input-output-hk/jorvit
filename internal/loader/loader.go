@@ -8,15 +8,16 @@ import (
 )
 
 type Proposal struct {
-	ID          string `json:"proposal_id"         csv:"proposal_id"`
-	Title       string `json:"proposal_title"      csv:"proposal_title"`
-	Summary     string `json:"proposal_summary"    csv:"proposal_summary"`
-	Problem     string `json:"proposal_problem"    csv:"proposal_problem"`
-	Solution    string `json:"proposal_solution"   csv:"proposal_solution"`
-	ProposalURL string `json:"proposal_url"        csv:"proposal_url"`
-	DataURL     string `json:"proposal_files_url"  csv:"proposal_files_url"`
-	PublicKey   string `json:"proposal_public_key" csv:"proposal_public_key"`
-	Funds       uint64 `json:"proposal_funds"      csv:"proposal_funds"`
+	ID          string  `json:"proposal_id"           csv:"proposal_id"`
+	Title       string  `json:"proposal_title"        csv:"proposal_title"`
+	Summary     string  `json:"proposal_summary"      csv:"proposal_summary"`
+	Problem     string  `json:"proposal_problem"      csv:"proposal_problem"`
+	Solution    string  `json:"proposal_solution"     csv:"proposal_solution"`
+	ProposalURL string  `json:"proposal_url"          csv:"proposal_url"`
+	DataURL     string  `json:"proposal_files_url"    csv:"proposal_files_url"`
+	PublicKey   string  `json:"proposal_public_key"   csv:"proposal_public_key"`
+	Funds       uint64  `json:"proposal_funds"        csv:"proposal_funds"`
+	ImpactScore float32 `json:"proposal_impact_score" csv:"proposal_impact_score"`
 }
 
 type ProposalCategory struct {
@@ -26,9 +27,10 @@ type ProposalCategory struct {
 }
 
 type Proposer struct {
-	ProposerEmail string `json:"proposer_email" csv:"proposer_email"`
-	ProposerName  string `json:"proposer_name"  csv:"proposer_name"`
-	ProposerURL   string `json:"proposer_url"   csv:"proposer_url"`
+	ProposerEmail      string `json:"proposer_email"               csv:"proposer_email"`
+	ProposerName       string `json:"proposer_name"                csv:"proposer_name"`
+	ProposerURL        string `json:"proposer_url"                 csv:"proposer_url"`
+	ProposerExperience string `json:"proposer_relevant_experience" csv:"proposer_relevant_experience"`
 }
 
 type ChainProposal struct {

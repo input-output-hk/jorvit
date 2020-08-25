@@ -3,6 +3,10 @@
         value: 1000000000000
       - address: ca1q45x6g98x3uxccduesr05w2uglr076z0t7tzf7f3uxu7pmhw9r6xvu5wptf
         value: 1000000000000
-  - fund:
-      - address: single1qvut4fvh45kdnltq9hcue4d9yr5mujdcfqlql9ln560r3lf48klvuamsd48
+  - fund: # single addresses
+      - address: ca1qwn28szy0t4ee32v7epzhget9989u8p77mtc9u4vla98q62vf5txxmd76f3
         value: 1000000000000
+      - address: ca1qvhujnjpdjwtnvlha2ves34v6v07gekqjtsupk9kvdq8fhhcl8s7sl632wq
+        value: 2000000000000
+      - address: ca1qvcq2yckqtjzggl3vcsmhessp0a85xnf4mjl6cgcm3vglehj4zhhccpplcd
+        value: 3000000000000
