@@ -100,15 +100,16 @@ func LoadData(r io.Reader) (*[]*ProposalData, error) {
 }
 
 type FundData struct {
-	FundID          string          `json:"id,omitempty"         csv:"id"`
-	Name            string          `json:"fund_name"            csv:"fund_name"`
-	Goal            string          `json:"fund_goal"            csv:"fund_goal"`
-	VotingPowerInfo string          `json:"voting_power_info"    csv:"voting_power_info"`
-	RewardsInfo     string          `json:"rewards_info"         csv:"rewards_info"`
-	StartTime       string          `json:"fund_start_time"      csv:"fund_start_time"`
-	EndTime         string          `json:"fund_end_time"        csv:"fund_end_time"`
-	NextStartTime   string          `json:"next_fund_start_time" csv:"next_fund_start_time"`
-	VotePlans       []ChainVotePlan `json:"chain_vote_plans"     csv:"-"`
+	FundID               string          `json:"id,omitempty"           csv:"id"`
+	Name                 string          `json:"fund_name"              csv:"fund_name"`
+	VotingPowerThreshold uint64          `json:"voting_power_threshold" csv:"voting_power_threshold"`
+	Goal                 string          `json:"fund_goal"              csv:"fund_goal"`
+	VotingPowerInfo      string          `json:"voting_power_info"      csv:"voting_power_info"`
+	RewardsInfo          string          `json:"rewards_info"           csv:"rewards_info"`
+	StartTime            string          `json:"fund_start_time"        csv:"fund_start_time"`
+	EndTime              string          `json:"fund_end_time"          csv:"fund_end_time"`
+	NextStartTime        string          `json:"next_fund_start_time"   csv:"next_fund_start_time"`
+	VotePlans            []ChainVotePlan `json:"chain_vote_plans"       csv:"-"`
 }
 
 func LoadFundData(r io.Reader) (*[]*FundData, error) {

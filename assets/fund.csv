@@ -1,2 +1,2 @@
-id,fund_name,fund_goal,voting_power_info,rewards_info,fund_start_time,fund_end_time,next_fund_start_time
-1,Fund0,Support innovative projects,,,,,
+id,fund_name,fund_goal,voting_power_threshold,voting_power_info,rewards_info,fund_start_time,fund_end_time,next_fund_start_time
+1,Fund0,Support innovative projects,5000000,,,,,
