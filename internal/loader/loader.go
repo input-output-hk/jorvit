@@ -2,22 +2,34 @@ package loader
 
 import (
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/gocarina/gocsv"
 )
 
 type Proposal struct {
-	ID          string  `json:"proposal_id"           csv:"proposal_id"`
-	Title       string  `json:"proposal_title"        csv:"proposal_title"`
-	Summary     string  `json:"proposal_summary"      csv:"proposal_summary"`
-	Problem     string  `json:"proposal_problem"      csv:"proposal_problem"`
-	Solution    string  `json:"proposal_solution"     csv:"proposal_solution"`
-	ProposalURL string  `json:"proposal_url"          csv:"proposal_url"`
-	DataURL     string  `json:"proposal_files_url"    csv:"proposal_files_url"`
-	PublicKey   string  `json:"proposal_public_key"   csv:"proposal_public_key"`
-	Funds       uint64  `json:"proposal_funds"        csv:"proposal_funds"`
-	ImpactScore float32 `json:"proposal_impact_score" csv:"proposal_impact_score"`
+	ID          string   `json:"proposal_id"           csv:"proposal_id"`
+	Title       string   `json:"proposal_title"        csv:"proposal_title"`
+	Summary     string   `json:"proposal_summary"      csv:"proposal_summary"`
+	Problem     string   `json:"proposal_problem"      csv:"proposal_problem"`
+	Solution    string   `json:"proposal_solution"     csv:"proposal_solution"`
+	ProposalURL string   `json:"proposal_url"          csv:"proposal_url"`
+	DataURL     string   `json:"proposal_files_url"    csv:"proposal_files_url"`
+	PublicKey   string   `json:"proposal_public_key"   csv:"proposal_public_key"`
+	Funds       Lovelace `json:"proposal_funds"        csv:"proposal_funds"`
+	ImpactScore float32  `json:"proposal_impact_score" csv:"proposal_impact_score"`
+}
+
+type Lovelace uint64
+
+func (lvl *Lovelace) UnmarshalCSV(csv string) error {
+	ada, err := strconv.ParseUint(csv, 10, 64)
+	if err != nil {
+		return err
+	}
+	*lvl = Lovelace(ada * 1_000_000)
+	return nil
 }
 
 type ProposalCategory struct {
