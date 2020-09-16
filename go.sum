@@ -1,7 +1,7 @@
 github.com/gocarina/gocsv v0.0.0-20200827134620-49f5c3fa2b3e h1:f9zU2ojLUYe8f/uWnetnr0p6TnAGQBCV/WdPKxodBqA=
 github.com/gocarina/gocsv v0.0.0-20200827134620-49f5c3fa2b3e/go.mod h1:5YoVOkjYAQumqlV356Hj3xeYh4BdZuLE0/nRkf2NKkI=
-github.com/rinor/jorcli v0.0.0-20200910124106-78362900ffb8 h1:B8ei8ErYJJIfajPBTeTYc65qysQX7MEqhaMU8Qa0slw=
-github.com/rinor/jorcli v0.0.0-20200910124106-78362900ffb8/go.mod h1:g0H93swQYhOXMd0PTL7EQOwkGTLGhtCjJ/HM+d1jKZY=
+github.com/rinor/jorcli v0.0.0-20200911200652-e43eb8058a41 h1:vDQtZI50gbPQ5Exbj//DOYLscrzkn5BZFVL62OPnxNU=
+github.com/rinor/jorcli v0.0.0-20200911200652-e43eb8058a41/go.mod h1:g0H93swQYhOXMd0PTL7EQOwkGTLGhtCjJ/HM+d1jKZY=
 github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e h1:MRM5ITcdelLK2j1vwZ3Je0FKVCfqOLp5zO6trqMLYs0=
 github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e/go.mod h1:XV66xRDqSt+GTGFMVlhk3ULuV0y9ZmzeVGR4mloJI3M=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
