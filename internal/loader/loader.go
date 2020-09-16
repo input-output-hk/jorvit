@@ -18,7 +18,7 @@ type Proposal struct {
 	DataURL     string   `json:"proposal_files_url"    csv:"proposal_files_url"`
 	PublicKey   string   `json:"proposal_public_key"   csv:"proposal_public_key"`
 	Funds       Lovelace `json:"proposal_funds"        csv:"proposal_funds"`
-	ImpactScore float32  `json:"proposal_impact_score" csv:"proposal_impact_score"`
+	ImpactScore Score    `json:"proposal_impact_score" csv:"proposal_impact_score"`
 }
 
 type Lovelace uint64
@@ -31,6 +31,17 @@ func (lvl *Lovelace) UnmarshalCSV(csv string) error {
 	*lvl = Lovelace(ada * 1_000_000)
 	return nil
 }
+
+type Score float32 // (Todo: this will be an int and to be convert to float on the consumer side)
+
+// func (sc *Score) UnmarshalCSV(csv string) error {
+// 	f, err := strconv.ParseFloat(csv, 32)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	*sc = Score(f * 100)
+// 	return nil
+// }
 
 type ProposalCategory struct {
 	CategoryID   string `json:"category_id"          csv:"-"`
