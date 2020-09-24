@@ -133,6 +133,7 @@ func main() {
 	explorerEnabled := flag.Bool("explorer", false, "Enable/Disable explorer")
 	restCorsAllowed := flag.String("cors", "https://api.vit.iohk.io,https://127.0.0.1,http://127.0.0.1,http://127.0.0.1:8000,http://127.0.0.1:8001,https://localhost,http://localhost,http://localhost:8000,http://localhost:8001,http://0.0.0.0:8000,http://0.0.0.0:8001", "Comma separated list of CORS allowed origins")
 	skipBootstrap := flag.Bool("skip-bootstrap", true, "Skip node bootstrap, in case of first/single genesis leader (default true)")
+	nodeLogLevel := flag.String("node-log-level", "warn", "Jörmungandr node log level, [off, critical, error, warn, info, debug, trace]")
 
 	// external proposal data
 	proposalsPath := flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
@@ -194,6 +195,10 @@ func main() {
 		fmt.Printf("Commit  - %s\n", CommitHash)
 		fmt.Printf("Date    - %s\n", BuildDate)
 		os.Exit(0)
+	}
+
+	if *nodeLogLevel == "" {
+		*nodeLogLevel = "warn"
 	}
 
 	// check if file exist - duplicate check is performed later on
@@ -366,9 +371,6 @@ func main() {
 		// General
 		consensus      = "bft" // bft or genesis_praos
 		discrimination = ""    // "" (empty defaults to "production")
-
-		// Node config log
-		nodeCfgLogLevel = "info"
 	)
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -740,7 +742,7 @@ func main() {
 	nodeCfg.P2P.AllowPrivateAddresses = true
 	nodeCfg.BootstrapFromTrustedPeers = true
 	nodeCfg.P2P.MaxBootstrapAttempts = 5
-	nodeCfg.Log.Level = nodeCfgLogLevel
+	nodeCfg.Log.Level = *nodeLogLevel
 
 	nodeCfg.Explorer.Enabled = *explorerEnabled
 
