@@ -32,16 +32,16 @@ func (lvl *Lovelace) UnmarshalCSV(csv string) error {
 	return nil
 }
 
-type Score float32 // (Todo: this will be an int and to be convert to float on the consumer side)
+type Score int
 
-// func (sc *Score) UnmarshalCSV(csv string) error {
-// 	f, err := strconv.ParseFloat(csv, 32)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	*sc = Score(f * 100)
-// 	return nil
-// }
+func (sc *Score) UnmarshalCSV(csv string) error {
+	f, err := strconv.ParseFloat(csv, 32)
+	if err != nil {
+		return err
+	}
+	*sc = Score(f * 100)
+	return nil
+}
 
 type ProposalCategory struct {
 	CategoryID   string `json:"category_id"          csv:"-"`
@@ -81,21 +81,6 @@ func (cvo *ChainVoteOptions) MarshalCSV() (string, error) {
 	}
 	return strings.Join(opts, ","), nil
 }
-
-/*
-type DateTime struct{ time.Time }
-
-// Convert the internal date as CSV string
-func (date *DateTime) MarshalCSV() (int64, error) {
-	return date.Time.Unix(), nil
-}
-
-// Convert the CSV string as internal date
-func (date *DateTime) UnmarshalCSV(csv string) (err error) {
-	date.Time, err = time.Parse(time.RFC3339, csv)
-	return err
-}
-*/
 
 type ChainVotePlan struct {
 	VpInternalID string `json:"-"                        csv:"id"`
