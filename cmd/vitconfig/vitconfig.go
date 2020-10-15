@@ -22,19 +22,24 @@ import (
 	"github.com/input-output-hk/jorvit/internal/datastore"
 	"github.com/input-output-hk/jorvit/internal/kit"
 	"github.com/input-output-hk/jorvit/internal/loader"
-	"github.com/input-output-hk/jorvit/internal/wallet"
 	"github.com/input-output-hk/jorvit/internal/webproxy"
 	"github.com/rinor/jorcli/jcli"
 	"github.com/rinor/jorcli/jnode"
-	"github.com/skip2/go-qrcode"
+	_ "github.com/rinor/vitcli/vservice"
 	"golang.org/x/crypto/blake2b"
 )
 
-// Version and build info
 var (
+	votePlanProposalsMax = 255 // max proposals included within one voteplan - hard limit
+
+	// Version and build info that can be set on build
 	Version    = "dev"
 	CommitHash = "none"
 	BuildDate  = "unknown"
+
+	// memory sprocessing stores
+	proposals datastore.ProposalsStore
+	funds     datastore.FundsStore
 )
 
 type bftLeader struct {
@@ -52,13 +57,14 @@ type jcliProposal struct {
 }
 
 type jcliVotePlan struct {
-	Payload      string         `json:"payload_type"`
-	VoteStart    ChainTime      `json:"vote_start"`
-	VoteEnd      ChainTime      `json:"vote_end"`
-	CommitteeEnd ChainTime      `json:"committee_end"`
-	Proposals    []jcliProposal `json:"proposals"`
-	VotePlanID   string         `json:"-"`
-	Certificate  string         `json:"-"`
+	Payload                   string         `json:"payload_type"`
+	VoteStart                 ChainTime      `json:"vote_start"`
+	VoteEnd                   ChainTime      `json:"vote_end"`
+	CommitteeEnd              ChainTime      `json:"committee_end"`
+	Proposals                 []jcliProposal `json:"proposals"`
+	CommitteeMemberPublicKeys []string       `json:"committee_member_public_keys"` // privacy encyption keys
+	VotePlanID                string         `json:"-"`
+	Certificate               string         `json:"-"`
 }
 
 type ChainTime struct {
@@ -80,16 +86,6 @@ func ToChainTime(block0Time int64, SlotDuration uint8, SlotsPerEpoch uint32, dat
 		SlotID: slot,
 	}
 }
-
-var (
-	votePlanProposalsMax = 255
-	wallets              []wallet.Wallet // = wallet.SampleWallets()
-)
-
-var (
-	proposals datastore.ProposalsStore
-	funds     datastore.FundsStore
-)
 
 func timeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
@@ -121,9 +117,15 @@ func (sf *sliceFlag) Set(val string) error {
 
 func main() {
 	var (
-		err             error
-		bftLeaderKey    sliceFlag
-		globalCommittee sliceFlag
+		err error
+
+		// BFT Leaders
+		bftLeadersSecretKeys sliceFlag
+		bftLeadersPublicKeys sliceFlag
+
+		// Committee auth + privacy members
+		committeeAuthPublicKeys    sliceFlag
+		committeePrivacyPublicKeys sliceFlag // TODO (rinor): implement usage logic
 	)
 
 	// node settings
@@ -134,11 +136,23 @@ func main() {
 	restCorsAllowed := flag.String("cors", "https://api.vit.iohk.io,https://127.0.0.1,http://127.0.0.1,http://127.0.0.1:8000,http://127.0.0.1:8001,https://localhost,http://localhost,http://localhost:8000,http://localhost:8001,http://0.0.0.0:8000,http://0.0.0.0:8001", "Comma separated list of CORS allowed origins")
 	skipBootstrap := flag.Bool("skip-bootstrap", true, "Skip node bootstrap, in case of first/single genesis leader (default true)")
 	nodeLogLevel := flag.String("node-log-level", "warn", "Jörmungandr node log level, [off, critical, error, warn, info, debug, trace]")
+	// extra node
+	allowNodeRestart := flag.Bool("allow-node-restart", true, "Allows to stop the node started from the service and restart it manually")
+	shutdownNode := flag.Bool("shutdown-node", true, "When exiting try node shutdown in case the node was restarted manually")
+	startNode := flag.Bool("start-node", true, "Start jörmungandr node. When false only config will be generated")
+
+	// vit service station settings
+	vitAddrPort := flag.String("vit-station", "127.0.0.1:3030", "Address where vit-servicing-station-server should listen in IP:PORT format")
+	vitLogLevel := flag.String("vit-log-level", "warn", "vit-servicing-station-server log level, [off, critical, error, warn, info, debug, trace]")
+	// extra vit
+	startVit := flag.Bool("start-vit", true, "Start vit-servicing-station-server. When false only config will be generated")
+
+	_, _, _ = vitAddrPort, vitLogLevel, startVit
 
 	// external proposal data
 	proposalsPath := flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
 	fundsPath := flag.String("fund", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"fund.csv", "CSV full path (filename) to load FUND info from")
-	dumbGenesisDataPath := flag.String("dumbdata", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"dumb_genesis_data.yaml", "YAML full path (filename) to load dumb genesis funds from")
+	genesisExtraDataPath := flag.String("genesis-extra-data", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"extra_genesis_data.yaml", "YAML full path (filename) to load extra genesis funds from")
 
 	// vote and committee related timing
 	voteStartFlag := flag.String("vote-start", "", "Vote start time in '2006-01-02T15:04:05Z07:00' RFC3339 format. If not set 'genesis-time' will be used")
@@ -156,11 +170,14 @@ func main() {
 	epochDurFlag := flag.String("epoch-duration", "24h", "Epoch period duration")
 
 	// BFT Leaders - also promoted to Global Committee members
-	bftLeaderTot := flag.Uint("bft-leader-tot", 1, "Number of BFT Leaders. NEW SK/PK key pair(s) will be autogenerated. min: 1 if \"bft-leader-key\" not set, otherwise this will be ignored")
-	flag.Var(&bftLeaderKey, "bft-leader-key", "File containing SK to be used as BFT leader. If not set, \"bft-leader-tot\" will be used to generate keys")
+	bftLeaderTot := flag.Uint("bft-leader-min", 1, "Minimun number of BFT Leaders. NEW SK/PK key pair(s) will be autogenerated if > \"bft-leader-secret-key\" + \"bft-leader-public-key\". min: 1")
+	flag.Var(&bftLeadersSecretKeys, "bft-leader-secret-key", "File containing SK (secret key) to be used as BFT leader")
+	flag.Var(&bftLeadersPublicKeys, "bft-leader-public-key", "PK (public key) to be used as BFT leader. No config file will be generated for this (since don't have the SK). ex: ed25519_pk15f7p4nzektlrj6muvvmn0hatzekg7yf0qjx54pg72qq2zgjjzdzqwhm8rz")
 
-	// Global Committee members
-	flag.Var(&globalCommittee, "global-committee", "Global committee member public key. ex: ed25519_pk15f7p4nzektlrj6muvvmn0hatzekg7yf0qjx54pg72qq2zgjjzdzqwhm8rz")
+	// Global Committee auth members public keys
+	flag.Var(&committeeAuthPublicKeys, "committee-auth-public-key", "Global committee member public key. ex: ed25519_pk15f7p4nzektlrj6muvvmn0hatzekg7yf0qjx54pg72qq2zgjjzdzqwhm8rz")
+	// Voteplan Committee privacy members public keys
+	flag.Var(&committeePrivacyPublicKeys, "committee-privacy-public-key", "Privacy committee member public key used to build encyption key, hex encoded")
 
 	// (bug) - 0 fees is ignored from the jorcli lib (needs fixing)
 	// fees
@@ -173,17 +190,14 @@ func main() {
 	feesCertificateVoteCast := flag.Uint64("fees-certificate-vote-cast", 0, "VoteCast certificate fee (lovelace)")
 	feesGoTo := flag.String("fees-go-to", "rewards", "Where to send the collected fees, rewards or treasury")
 
-	// extra
-	allowNodeRestart := flag.Bool("allow-node-restart", true, "Allows to stop the node started from the service and restart it manually")
-	shutdownNode := flag.Bool("shutdown-node", true, "When exiting try node shutdown in case the node was restarted manually")
-	startNode := flag.Bool("start-node", true, "Start jörmungandr node. When false only config will be generated")
+	// in memory service only
 	dateTimeFormat := flag.String("time-format", time.RFC3339, "Date/Time format that will be used for display (go lang format), ex: \"2006-01-02 15:04:05 -0700 MST\"")
 
 	// Dump raw data
-	dumpRaw := flag.String("dump-raw", "", "Dump raw data like voteplan.json, voteplan.cert, funds.csv, voteplans.csv, proposals.csv")
+	dumpRaw := flag.String("dump-raw", "", "Path to dump raw data like voteplan.json, voteplan.cert, funds.csv, voteplans.csv, proposals.csv")
 
 	// version info
-	version := flag.Bool("version", false, "Prints current app version and build info")
+	version := flag.Bool("version", false, "Print current app version and build info")
 
 	// fund each btf leader account address with this value
 	leaderFund := uint64(10_000_000_001)
@@ -201,15 +215,18 @@ func main() {
 		*nodeLogLevel = "warn"
 	}
 
-	// check if file exist - duplicate check is performed later on
-	for i := range bftLeaderKey {
-		_, err = os.Stat(bftLeaderKey[i])
+	// check if file exist - duplicate data check is performed later on
+	for i := range bftLeadersSecretKeys {
+		_, err = os.Stat(bftLeadersSecretKeys[i])
 		kit.FatalOn(err)
 	}
 
-	// Set bftLeaderTot
-	if len(bftLeaderKey) > 0 {
-		*bftLeaderTot = uint(len(bftLeaderKey))
+	// set new value for bftLeaderTot if provided inputs are more
+	if len(bftLeadersSecretKeys) > 0 || len(bftLeadersPublicKeys) > 0 {
+		inputLeaders := uint(len(bftLeadersSecretKeys) + len(bftLeadersPublicKeys))
+		if inputLeaders > *bftLeaderTot {
+			*bftLeaderTot = inputLeaders
+		}
 	}
 
 	if *dumpRaw != "" {
@@ -395,22 +412,37 @@ func main() {
 	leaders := make([]bftLeader, 0, *bftLeaderTot)
 	leadersPubKey := make(map[string]bool, *bftLeaderTot)
 
+	var (
+		bftFileIdx int
+		bftPkIdx   int
+	)
 	for i := 0; uint(i) < *bftLeaderTot; i++ {
-		var leaderSK []byte
+		var (
+			leaderSK      []byte
+			leaderPK      []byte
+			bftSecretFile string
+		)
 
-		if len(bftLeaderKey) > 0 {
-			leaderSK, err = ioutil.ReadFile(bftLeaderKey[i])
+		switch {
+		case len(bftLeadersSecretKeys)-bftFileIdx > 0:
+			leaderSK, err = ioutil.ReadFile(bftLeadersSecretKeys[bftFileIdx])
 			kit.FatalOn(err, kit.B2S(leaderSK))
-		} else {
+			leaderPK, err = jcli.KeyToPublic(leaderSK, "", "")
+			kit.FatalOn(err, kit.B2S(leaderPK))
+			bftFileIdx++
+		case len(bftLeadersPublicKeys)-bftPkIdx > 0:
+			leaderPK = []byte(bftLeadersPublicKeys[bftPkIdx])
+			bftPkIdx++
+		default:
 			leaderSK, err = jcli.KeyGenerate("", "Ed25519", "")
 			kit.FatalOn(err, kit.B2S(leaderSK))
+			leaderPK, err = jcli.KeyToPublic(leaderSK, "", "")
+			kit.FatalOn(err, kit.B2S(leaderPK))
 		}
 
-		leaderPK, err := jcli.KeyToPublic(leaderSK, "", "")
-		kit.FatalOn(err, kit.B2S(leaderPK))
-
 		if leadersPubKey[kit.B2S(leaderPK)] {
-			log.Printf("Duplicate BFT Leader skip: %s", kit.B2S(leaderPK))
+			i-- // needed to reach bftLeaderTot, won't go below 0
+			log.Printf("***** Duplicate BFT Leader skip: %s *****", kit.B2S(leaderPK))
 			continue
 		}
 		leadersPubKey[kit.B2S(leaderPK)] = true
@@ -418,10 +450,12 @@ func main() {
 		leaderACC, err := jcli.AddressAccount(kit.B2S(leaderPK), "", "")
 		kit.FatalOn(err, kit.B2S(leaderACC))
 
-		// Needed later on to sign
-		bftSecretFile := filepath.Join(workingDir, strconv.Itoa(i)+"_bft_secret.key")
-		err = ioutil.WriteFile(bftSecretFile, leaderSK, 0744)
-		kit.FatalOn(err)
+		if len(leaderSK) > 0 {
+			// Needed later on to sign
+			bftSecretFile = filepath.Join(workingDir, strconv.Itoa(i)+"_bft_secret.key")
+			err = ioutil.WriteFile(bftSecretFile, leaderSK, 0744)
+			kit.FatalOn(err)
+		}
 
 		leaders = append(leaders, bftLeader{
 			sk:     kit.B2S(leaderSK),
@@ -469,33 +503,25 @@ func main() {
 	}
 
 	// Global Committee Members list
-	committeePubKey := make(map[string]bool, len(globalCommittee))
-	for i := range globalCommittee {
-		// Check if committee pk is on bft leaders
-		if leadersPubKey[globalCommittee[i]] {
-			log.Printf("Duplicate Committee member on BFT Leader skip: %s", globalCommittee[i])
-			continue
-		}
+	if len(committeeAuthPublicKeys) > 0 {
+		committeePubKey := make(map[string]bool, len(committeeAuthPublicKeys))
+		for i := range committeeAuthPublicKeys {
+			// Check if committee pk is on bft leaders
+			if leadersPubKey[committeeAuthPublicKeys[i]] {
+				log.Printf("***** Duplicate Committee member on BFT Leader, skip: %s *****", committeeAuthPublicKeys[i])
+				continue
+			}
 
-		if committeePubKey[globalCommittee[i]] {
-			log.Printf("Duplicate Committee member skip: %s", globalCommittee[i])
-			continue
-		}
-		committeePubKey[globalCommittee[i]] = true
+			if committeePubKey[committeeAuthPublicKeys[i]] {
+				log.Printf("***** Duplicate Committee member, skip: %s *****", committeeAuthPublicKeys[i])
+				continue
+			}
+			committeePubKey[committeeAuthPublicKeys[i]] = true
 
-		pk, err := jcli.KeyToBytes([]byte(globalCommittee[i]), "", "")
-		kit.FatalOn(err, kit.B2S(pk))
+			pk, err := jcli.KeyToBytes([]byte(committeeAuthPublicKeys[i]), "", "")
+			kit.FatalOn(err, kit.B2S(pk))
 
-		block0cfg.AddCommittee(kit.B2S(pk))
-	}
-
-	// add legacy funds
-	for i := range wallets {
-		wallets[i].Totals = 0
-		for _, lf := range wallets[i].Funds {
-			err = block0cfg.AddInitialLegacyFund(lf.Address, lf.Value)
-			kit.FatalOn(err)
-			wallets[i].Totals += lf.Value
+			block0cfg.AddCommittee(kit.B2S(pk))
 		}
 	}
 
@@ -511,8 +537,18 @@ func main() {
 		payloadProposals[p.VoteType] = append(payloadProposals[p.VoteType], p)
 	}
 
-	// Calculate nr of needed voteplans since there is a limit of proposals a plan can have (256)
-	// Taking in consideration also payload (although we have only public for now)
+	// check we have also privacy committee members when we have private voteplans
+	if len(payloadProposals["private"]) > 0 && len(committeePrivacyPublicKeys) == 0 {
+		kit.FatalOn(fmt.Errorf("%s proposals found, but no %s provided", "private", "committee-privacy-public-key"))
+	}
+
+	// check if we have privacy committee members when we don't have private voteplans
+	if len(payloadProposals["private"]) == 0 && len(committeePrivacyPublicKeys) > 0 {
+		kit.FatalOn(fmt.Errorf(" %s provided, but no %s proposals found", "committee-privacy-public-key", "private"))
+	}
+
+	// Calculate nr of needed voteplans since there is a limit of proposals a plan can have (255)
+	// Taking in consideration also payload
 	vpNeeded := 0 //votePlansNeeded(proposalsTot, votePlanProposalsMax)
 	for _, vpp := range payloadProposals {
 		vpNeeded += votePlansNeeded(len(vpp), votePlanProposalsMax)
@@ -521,17 +557,24 @@ func main() {
 	jcliVotePlans := make([]jcliVotePlan, vpNeeded)
 	funds.First().VotePlans = make([]loader.ChainVotePlan, vpNeeded)
 
+	jcliVotePlansCreated := 0
 	for pt := range payloadProposals {
-
+		vpi := 0
 		// Generate proposals hash and associate it to a voteplan
 		for i, proposal := range payloadProposals[pt] {
 
-			// retrieve the voteplan intenal index based on the proposal index we are at
-			vpi := i / votePlanProposalsMax
-
 			// tmp - hash the proposal (TODO: decide what to hash in production, file bytes ???)
-			externalID := blake2b.Sum256([]byte(proposal.Proposal.ID + proposal.InternalID))
+			externalID := blake2b.Sum256([]byte(proposal.Proposal.ID + proposal.InternalID + pt))
 			proposal.ChainProposal.ExternalID = hex.EncodeToString(externalID[:])
+
+			// retrieve the voteplan internal index based on the proposal index we are at
+			// taking in consideration also previous payloads voteplans created
+			vpi = (i / votePlanProposalsMax) + jcliVotePlansCreated
+
+			// Set payload once
+			if jcliVotePlans[vpi].Payload == "" {
+				jcliVotePlans[vpi].Payload = pt
+			}
 
 			// add proposal hash to the respective voteplan internal container
 			jcliVotePlans[vpi].Proposals = append(
@@ -542,21 +585,23 @@ func main() {
 					Action:     proposal.VoteAction,
 				},
 			)
-			// Set payload once
-			if jcliVotePlans[vpi].Payload == "" {
-				jcliVotePlans[vpi].Payload = pt
-			}
-
 		}
+		jcliVotePlansCreated = jcliVotePlansCreated + vpi + 1 // vpi is an index so we need +1
 	}
 
-	signersFiles := make([]string, 0, len(leaders))
-	signersFiles = append(signersFiles, leaders[0].skFile) // cert accepts only 1 signer for now....
-	/*
-		for i := range leaders {
-			signersFiles = append(signersFiles, leaders[i].skFile)
+	certSignersFiles := make([]string, 0) //, 0, len(leaders))
+	for i := range leaders {
+		// we need a secret key
+		if leaders[i].skFile == "" {
+			continue
 		}
-	*/
+		certSignersFiles = append(certSignersFiles, leaders[i].skFile)
+		break // right now only one key is needed to sign a certificate so bail as soon as we have one
+	}
+
+	if *block0Voteplans && len(certSignersFiles) == 0 {
+		kit.FatalOn(fmt.Errorf("no [%s] available to sign the block0 certificate(s)", "bft leader SK (secret key)"), "block0-voteplan")
+	}
 
 	// Generate voteplan certificates and id
 	for i := range jcliVotePlans {
@@ -564,39 +609,60 @@ func main() {
 		jcliVotePlans[i].VoteStart = voteStart
 		jcliVotePlans[i].VoteEnd = voteEnd
 		jcliVotePlans[i].CommitteeEnd = committeeEnd
+		// Add committee privacy public keys if VotePlan payload is private
+		switch jcliVotePlans[i].Payload {
+		case "private":
+			jcliVotePlans[i].CommitteeMemberPublicKeys = committeePrivacyPublicKeys
+		case "public":
+			jcliVotePlans[i].CommitteeMemberPublicKeys = []string{}
+		}
 
 		stdinConfig, err := json.MarshalIndent(jcliVotePlans[i], "", " ")
 		kit.FatalOn(err, "json.Marshal VotePlan Config")
 
-		cert, err := jcli.CertificateNewVotePlan(stdinConfig, "", "")
-		kit.FatalOn(err, "CertificateNewVotePlan", kit.B2S(cert))
+		ucert, err := jcli.CertificateNewVotePlan(stdinConfig, "", "")
+		kit.FatalOn(err, "CertificateNewVotePlan", kit.B2S(ucert))
 
-		id, err := jcli.CertificateGetVotePlanID(cert, "", "")
+		id, err := jcli.CertificateGetVotePlanID(ucert, "", "")
 		kit.FatalOn(err, "CertificateGetVotePlanID:", kit.B2S(id))
 
+		jcliVotePlans[i].VotePlanID = kit.B2S(id)
+
+		// Assuming that bft leaders will be part of committee signing keys
+		scert := []byte{}
+		if *block0Voteplans {
+			scert, err = jcli.CertificateSign(ucert, certSignersFiles, "", "")
+			kit.FatalOn(err, "CertificateSign:", kit.B2S(scert))
+
+			jcliVotePlans[i].Certificate = kit.B2S(scert)
+		}
+
 		if *dumpRaw != "" {
-			vpj, err := os.Create(filepath.Join(*dumpRaw, "voteplan_"+kit.B2S(id)+".json"))
+			vpj, err := os.Create(filepath.Join(*dumpRaw, jcliVotePlans[i].Payload+"_voteplan_"+kit.B2S(id)+".json"))
 			kit.FatalOn(err, "VotePlan json CREATE", kit.B2S(id))
 			_, err = vpj.Write(stdinConfig)
 			kit.FatalOn(err, "VotePlan json WRITE", kit.B2S(id))
 			err = vpj.Close()
 			kit.FatalOn(err, "VotePlan json CLOSE", kit.B2S(id))
 
-			vpc, err := os.Create(filepath.Join(*dumpRaw, "voteplan_"+kit.B2S(id)+".cert"))
-			kit.FatalOn(err, "VotePlan cert CREATE", kit.B2S(id))
-			_, err = vpc.Write(cert)
-			kit.FatalOn(err, "VotePlan cert WRITE", kit.B2S(id))
-			err = vpc.Close()
-			kit.FatalOn(err, "VotePlan cert CLOSE", kit.B2S(id))
+			vpuc, err := os.Create(filepath.Join(*dumpRaw, jcliVotePlans[i].Payload+"_voteplan_"+kit.B2S(id)+".cert-unsigned"))
+			kit.FatalOn(err, "VotePlan cert-unsigned CREATE", kit.B2S(id))
+			_, err = vpuc.Write(ucert)
+			kit.FatalOn(err, "VotePlan cert-unsigned WRITE", kit.B2S(id))
+			err = vpuc.Close()
+			kit.FatalOn(err, "VotePlan cert-unsigned CLOSE", kit.B2S(id))
+
+			if len(scert) > 0 {
+				vpsc, err := os.Create(filepath.Join(*dumpRaw, jcliVotePlans[i].Payload+"_voteplan_"+kit.B2S(id)+".cert-signed"))
+				kit.FatalOn(err, "VotePlan cert-signed CREATE", kit.B2S(id))
+				_, err = vpsc.Write(scert)
+				kit.FatalOn(err, "VotePlan cert-signed WRITE", kit.B2S(id))
+				err = vpsc.Close()
+				kit.FatalOn(err, "VotePlan cert-signed CLOSE", kit.B2S(id))
+			}
 		}
 
-		cert, err = jcli.CertificateSign(cert, signersFiles, "", "")
-		kit.FatalOn(err, "CertificateSign:", kit.B2S(cert))
-
-		jcliVotePlans[i].Certificate = kit.B2S(cert)
-		jcliVotePlans[i].VotePlanID = kit.B2S(id)
-
-		// Update Fund info with VotePlans Data
+		// Update Fund info with VotePlans Data - TODO: when defined update to support multiple funds
 		funds.First().VotePlans[i].VotePlanID = jcliVotePlans[i].VotePlanID
 		funds.First().VotePlans[i].VoteStart = voteStartTime.Format(*dateTimeFormat)
 		funds.First().VotePlans[i].VoteEnd = voteEndTime.Format(*dateTimeFormat)
@@ -627,7 +693,7 @@ func main() {
 		}
 	}
 	//////////////////////////////////////////////
-	/* TODO: TMP - remove once properly defined */
+	/* TODO: TMP - remove once/if properly defined */
 	if funds.First().StartTime == "" {
 		funds.First().StartTime = voteStartTime.Format(*dateTimeFormat)
 	}
@@ -638,12 +704,12 @@ func main() {
 		funds.First().VotingPowerInfo = funds.First().StartTime
 	}
 	if funds.First().RewardsInfo == "" {
-		funds.First().RewardsInfo = committeeEndTime.Add(epochDur).Format(*dateTimeFormat)
+		funds.First().RewardsInfo = committeeEndTime.Add(7 * epochDur).Format(*dateTimeFormat)
 	}
 	if funds.First().NextStartTime == "" {
-		funds.First().NextStartTime = committeeEndTime.Add(30 * epochDur).Format(*dateTimeFormat)
+		funds.First().NextStartTime = committeeEndTime.Add(15 * epochDur).Format(*dateTimeFormat)
 	}
-	/* TODO: TMP - remove once properly defined */
+	/* TODO: TMP - remove once/if properly defined */
 	//////////////////////////////////////////////
 
 	if *dumpRaw != "" {
@@ -681,11 +747,11 @@ func main() {
 	block0Yaml, err := block0cfg.ToYaml()
 	kit.FatalOn(err)
 
-	if *dumbGenesisDataPath != "" {
-		bulkDumbData, err := ioutil.ReadFile(*dumbGenesisDataPath)
+	if *genesisExtraDataPath != "" {
+		bulkExtraData, err := ioutil.ReadFile(*genesisExtraDataPath)
 		kit.FatalOn(err)
-		if len(bulkDumbData) > 0 {
-			block0Yaml = append(block0Yaml, bulkDumbData...)
+		if len(bulkExtraData) > 0 {
+			block0Yaml = append(block0Yaml, bulkExtraData...)
 		}
 	}
 
@@ -711,6 +777,11 @@ func main() {
 	//////////////////////
 
 	for i := range leaders {
+		// we need secret key, but only public ones may have been provided
+		if leaders[i].sk == "" {
+			continue
+		}
+
 		secretCfg := jnode.NewSecretConfig()
 
 		secretCfg.Bft.SigningKey = leaders[i].sk
@@ -719,7 +790,7 @@ func main() {
 		kit.FatalOn(err)
 
 		// need this file for starting the node (--secret)
-		secretCfgFile := filepath.Join(workingDir, strconv.Itoa(i)+"_bft-secret.yaml")
+		secretCfgFile := leaders[i].skFile + ".yaml"
 		err = ioutil.WriteFile(secretCfgFile, secretCfgYaml, 0744)
 		kit.FatalOn(err)
 
@@ -733,20 +804,28 @@ func main() {
 	nodeCfg := jnode.NewNodeConfig()
 
 	nodeCfg.Storage = filepath.Join(workingDir, "storage")
+
 	nodeCfg.SkipBootstrap = *skipBootstrap
+	nodeCfg.BootstrapFromTrustedPeers = true
+
 	nodeCfg.Rest.Listen = restAddress
 	nodeCfg.Rest.Cors.AllowedOrigins = strings.Split(*restCorsAllowed, ",")
 	nodeCfg.Rest.Cors.MaxAgeSecs = 0
+
 	nodeCfg.P2P.PublicAddress = p2pListenAddress
 	nodeCfg.P2P.ListenAddress = p2pListenAddress
 	nodeCfg.P2P.AllowPrivateAddresses = true
-	nodeCfg.BootstrapFromTrustedPeers = true
 	nodeCfg.P2P.MaxBootstrapAttempts = 5
+
 	nodeCfg.Log.Level = *nodeLogLevel
 
 	nodeCfg.Explorer.Enabled = *explorerEnabled
 
 	for i := range leaders {
+		// we need secret key to build config file, but only public ones may have been provided
+		if leaders[i].cfgFile == "" {
+			continue
+		}
 		nodeCfg.AddSecretFile(leaders[i].cfgFile)
 	}
 
@@ -778,6 +857,10 @@ func main() {
 	node.ConfigFile = nodeCfgFile
 
 	for i := range leaders {
+		// we need secret key to build config file, but only public ones may have been provided so no leader config possible
+		if leaders[i].cfgFile == "" {
+			continue
+		}
 		node.AddSecretFile(leaders[i].cfgFile)
 	}
 
@@ -800,6 +883,7 @@ func main() {
 	////////////////////
 	// internal proxy //
 	////////////////////
+
 	go func() {
 		err := webproxy.Run(proposals, funds, &block0Bin, proxyAddress, "http://"+restAddress)
 		if err != nil {
@@ -822,11 +906,7 @@ func main() {
 	log.Printf("VIT - BFT Genesis: %s - %d", "VOTEPLANS", len(jcliVotePlans))
 	log.Printf("VIT - BFT Genesis: %s - %d", "PROPOSALS", proposals.Total())
 	log.Println()
-	log.Printf("VIT - BFT Genesis: %s", "Wallets available for recovery")
 
-	qrPrint(wallets)
-
-	log.Println()
 	log.Printf("JÖRMUNGANDR listening at: %s - %v", p2pListenAddress, *startNode)
 	log.Printf("JÖRMUNGANDR Rest API available at: http://%s/api - %v", restAddress, *startNode)
 	log.Println()
@@ -862,16 +942,6 @@ func main() {
 	}
 
 	log.Println("...VIT - BFT Genesis Node - Done") // All done. Node has stopped.
-}
-
-// Print Wallet data and QR
-func qrPrint(w []wallet.Wallet) {
-	for i := range wallets {
-		q, err := qrcode.New(w[i].Mnemonics, qrcode.Medium)
-		kit.FatalOn(err)
-
-		fmt.Printf("\n%s\n%s\n", w[i], q.ToSmallString(false))
-	}
 }
 
 func votePlansNeeded(proposalsTot int, max int) int {
