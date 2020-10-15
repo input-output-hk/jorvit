@@ -1,0 +1,312 @@
+#  - fund: # failover operational funds
+#      - address: ca1qhjhe6em9qe0ql3w7pg7wu4k92ph77jgds678r63ha2kh5atek8v5up7e4j
+#        value: 1000000000000
+#      - address: ca1q45x6g98x3uxccduesr05w2uglr076z0t7tzf7f3uxu7pmhw9r6xvu5wptf
+#        value: 1000000000000
+#  - fund: # single addresses (testing recoverable)
+#      - address: ca1qwn28szy0t4ee32v7epzhget9989u8p77mtc9u4vla98q62vf5txxmd76f3
+#        value: 1000000000000
+#      - address: ca1qvhujnjpdjwtnvlha2ves34v6v07gekqjtsupk9kvdq8fhhcl8s7sl632wq
+#        value: 1000000000000
+#      - address: ca1qvcq2yckqtjzggl3vcsmhessp0a85xnf4mjl6cgcm3vglehj4zhhccpplcd
+#        value: 1000000000000
+  - fund:
+      - address: ca1q0av6wrd5y6lldtfphe3qlw63evq7dg0jlzy2etcgrrw0juz45s2uufgw09
+        value: 10000000000
+  - fund:
+      - address: ca1qd5aycr39sy84s3lmenhgzxfxfnuxqkeymzp0pq6vupgxt4u5kyuzq7xat6
+        value: 10000000000
+  - fund:
+      - address: ca1qvgmylk98pcnzslzn2993xt8704kf02r5hhus0ux5uq52t9j0506q2evzut
+        value: 10000000000
+  - fund:
+      - address: ca1q0eszeekex0y4zdks9k995txll70mwrjren4u4k9f5krugy55v3cg5r7s0z
+        value: 10000000000
+  - fund:
+      - address: ca1q05pas3hj9x649dg8dk36g6y3u4x6nd8jq6mrz6euyfwgc75vdyacygsvpy
+        value: 10000000000
+  - fund:
+      - address: ca1qws9vsupsc6lzhuhn83htqawhqvgxktc5pa4ldfypjpn4l3gkrxzxjgzjx4
+        value: 10000000000
+  - fund:
+      - address: ca1qvqt43hcw03t53e2v4ssr3eut3m6890tr8v8y6qn7rh5326wz8pv72q6436
+        value: 10000000000
+  - fund:
+      - address: ca1qwxu0dxxnulxz5xcrlgc0me06a9zp7mu0pudpjsqe2f3jgppjafhkm0nuk4
+        value: 10000000000
+  - fund:
+      - address: ca1qvpz6ec438chwt27x36w0vygyh9g0h0teuj0e2ymd4xrlwzcy7fywqu5r7u
+        value: 10000000000
+  - fund:
+      - address: ca1qwgpq9hryd9z2u5umr98e3vrmtp6dnqzkxu2l2qdmz4g7dtvqlgyqehanp2
+        value: 10000000000
+  - fund:
+      - address: ca1qwszp69gwfr8ura9qyhvdvk9vqhpww9nn69t98na77xpgvkxxdjp78syyy6
+        value: 10000000000
+  - fund:
+      - address: ca1qwu24zlzfdx2dezt9zu8mltqzujzdeanw3gse95weur50fr3gt5w76ma4qa
+        value: 10000000000
+  - fund:
+      - address: ca1q07efxw6k64mkp2jcvgeh0g8vldfxzwvd3t924z42awv4gsr7vgw26cu2hh
+        value: 10000000000
+  - fund:
+      - address: ca1qv7tp9y78tksp0wt5gympyss5t99vaepyqjzecd5eet3ye9rzehhxd28fg3
+        value: 10000000000
+  - fund:
+      - address: ca1q0anrtywcc42pd6qgn3yfpc75y7xwu2c3de0lswglmz9ttawe2gxcplhfrq
+        value: 10000000000
+  - fund:
+      - address: ca1qdvq0f2tg72e39pk24scvmct5ekempgfw42n630q2sgsl5mg5d9zzpvn3m4
+        value: 10000000000
+  - fund:
+      - address: ca1qw4ajf3gsmsq9quspz9er2976raq60fxetsn5wtq994dv7wqcctmjv083pd
+        value: 10000000000
+  - fund:
+      - address: ca1qdy7lsna5ha2kl5upuku9svskh9fzer99z065knjmr9t94hughqq7j56s02
+        value: 10000000000
+  - fund:
+      - address: ca1qwh527ydf9l3eq36wd8zrn9ux5d9g89lspjdm9tz868jm2xd7gvjxzyqdx3
+        value: 10000000000
+  - fund:
+      - address: ca1q0e5029eu3z3tmtm2epw2fntlw5hwmnedt70lw0qczr8h90qdavkv26p7er
+        value: 10000000000
+  - fund:
+      - address: ca1qdhmzzswpwa9e5rl3cjscgc8qk9eyqanxn8a2arzj6fz7ewaeeavyzrrw2j
+        value: 10000000000
+  - fund:
+      - address: ca1qvhxa0damz4cv7yxum7e4tc8us8hqyhwpgetkgx9h3469ffac4h5vm5z9mj
+        value: 10000000000
+  - fund:
+      - address: ca1qdyjxth4um672kupxmvd0v0scpp49ew98qghspwjum0rcfwh6fjrg2uff7z
+        value: 10000000000
+  - fund:
+      - address: ca1qv5r4c0kqmkqzt0k7fmrp4fnq2gh5peplhudhtlf8n6mup9vesgyka4utfh
+        value: 10000000000
+  - fund:
+      - address: ca1qdm768455kds2z4rhtmkapcwhq70hlc0t58v4qqmqe7txwslmadjs2rd8w6
+        value: 10000000000
+  - fund:
+      - address: ca1qd9apj7khl800k8r3emwqxspvja7wj9d5l5jn7z24q46mzvwgrljkqf80gg
+        value: 10000000000
+  - fund:
+      - address: ca1qdkkv5vcjg37evdwkqq3j7uqcf7qkw088utxjmtje859dezekdcd7ayk5yy
+        value: 10000000000
+  - fund:
+      - address: ca1q0avuz29dzv878u5x4z0f3dy3u6r0n0a6mdexnhgrmfkjq0yglg6jz4xmr8
+        value: 10000000000
+  - fund:
+      - address: ca1q0nzapw4mcgszavjcs5egtj5f7wymx9uj974sh0mh3ul7psaqf7vkunpc3f
+        value: 10000000000
+  - fund:
+      - address: ca1qwf8my9lazjrk6x0g0ax8gf9x47tcza88lg09886662zk0f8pnsv6flrgpr
+        value: 10000000000
+  - fund:
+      - address: ca1qd296flzkkdhnw9uythr4tzlgsrqpzhdvjrf7jqcl6ff8zrzvxcqgl6l68u
+        value: 10000000000
+  - fund:
+      - address: ca1qvsm6ufs3rar2vqs6ut2tquz5nvqjllnc05vs0fgph3exqc0pkd0j6xjchz
+        value: 10000000000
+  - fund:
+      - address: ca1qd3z9ny85z7ze9nzu0ml6mp9nlud6pclan3wcxc2h3s9kzwg26zugjke0z9
+        value: 10000000000
+  - fund:
+      - address: ca1qdtgncnxjhpg86js3mn826ve00esgtwt5fkvuxfvq48mltj74h2eql30qen
+        value: 10000000000
+  - fund:
+      - address: ca1qv82qymq9s66xry958r2rm5dphpqh6lvr4lra7h5km0zsqzkhmhwuluendu
+        value: 10000000000
+  - fund:
+      - address: ca1qvlnmua05jfmffqfa8yp7ky82h3nraqafme94n5hnkg48nnszvcu26560pm
+        value: 10000000000
+  - fund:
+      - address: ca1q0y7y5s3ha7d2ghffx0qvw3x6z54lgye4cncq7x8jammph4wdjez5y4lwq4
+        value: 10000000000
+  - fund:
+      - address: ca1qdygvz02dzy3hyn52n2nrttjl5d3rdyh8e66zzyr2h80q5c25jxvkz2fetk
+        value: 10000000000
+  - fund:
+      - address: ca1qv624y9dp56ja7098684lenrpgnplygejza9y2yssfrlhkyhtw8kwpzj272
+        value: 10000000000
+  - fund:
+      - address: ca1q0lafy0366adyz8g89tw8kef6lacgq245tn6573d8ur3d0ce2rxrj29s2wd
+        value: 10000000000
+  - fund:
+      - address: ca1qwfddyz0h8l5fnztydcw8ryaqyw9mcrcpwj7jgngukw46nk3lqrtxcj2l25
+        value: 10000000000
+  - fund:
+      - address: ca1qwh5vx42mf9vwjhev9cg8ukllrlnulp0acupta89gwuvfz802af2jvqkc6c
+        value: 10000000000
+  - fund:
+      - address: ca1qw9zmgtd3qtaveuz3te9snkxszy3tgvqr56zjtuauzst2mv0jmuhcluh3wl
+        value: 10000000000
+  - fund:
+      - address: ca1qvfxlh8ka4xjmpzs6lnp5mu4ma03j8r62x9tt7eeej70xu724lkeqxd5ucw
+        value: 10000000000
+  - fund:
+      - address: ca1qd9ctp88774nqnaygu5cg52f7uv36d7tpkrf8ddcrhtydpxp58lpxk2xgfl
+        value: 10000000000
+  - fund:
+      - address: ca1qd30xg0z3d009w2kcl0khd0qcwe7yht6mt8x5aazhay5hh20fyk2wu65rst
+        value: 10000000000
+  - fund:
+      - address: ca1qwc7039twgue2gwkvzc6mtucs272r4tv7rz65aelcf0afyunzsxy2hnvp27
+        value: 10000000000
+  - fund:
+      - address: ca1qw68hynsn68enugty595yvnkw2hxs3yzs358vnau5763gqmyfyj3ga36de4
+        value: 10000000000
+  - fund:
+      - address: ca1qdklm0lfgyhp4zyawj2x46leggygduvr3p4yklelswqmyqpsrtywqglrt8z
+        value: 10000000000
+  - fund:
+      - address: ca1q0l8409qpwcr9448l2ew8t6pmc64udp7dkdavpcdjj0607dse70lw5rkm67
+        value: 10000000000
+  - fund:
+      - address: ca1q0k3av359xhw92uer8wev4s0y70j8upyqnawvu63fd7deznv9kur2npfsm9
+        value: 10000000000
+  - fund:
+      - address: ca1qv676dmyts6qq6c7u7w89cra2u879m6223k4l622tvufhjjrzpkt7gfw9d4
+        value: 10000000000
+  - fund:
+      - address: ca1qvxdyl57nkshceukfneah5v4tvhz8qyhedy6u3hxqr67hsp3uslucwlqj4d
+        value: 10000000000
+  - fund:
+      - address: ca1qw06wwwxcksuv39nap9xqjfpucyhvlzh3x3wwtclvzr5y08rlleewqspdut
+        value: 10000000000
+  - fund:
+      - address: ca1q07gnwpnxfamhgx230dw3j36hx5gs5q4dmvzx0kmxjanqsevk8kyzhstr85
+        value: 10000000000
+  - fund:
+      - address: ca1qvjqdurdyjm2tt2pt0chn9hwnwp3djzsp2v3ps456qzeejywltflq8w6m98
+        value: 10000000000
+  - fund:
+      - address: ca1q059d8h3vqdz8d4l4ylkt5mp0uncc694kdq9vgxrp05sxl2ww5yyynzey8q
+        value: 10000000000
+  - fund:
+      - address: ca1qdy2dxnh78k0etu74c7nhjukq52qsptpq5cprlvxpqwu0zsdv494wd545rd
+        value: 10000000000
+  - fund:
+      - address: ca1qdzfas9up9734trd2qvhew3m2yte5ugvhz8nx4ttf25qw2t4mvx2u9tx0mj
+        value: 10000000000
+  - fund:
+      - address: ca1qdcx5auaw6g0uftmmd2xj4xjuja624r9s6dgjrq5q4fgrsy4ywnnkw7yd59
+        value: 10000000000
+  - fund:
+      - address: ca1qvg34qjsvtygzt9xcl6le9g6n6yjeu3srg6zhqx8de95pnx5q78fwktpscd
+        value: 10000000000
+  - fund:
+      - address: ca1q0hp6edtfl3n6mdukxqn4t0sqw8n8c4kdq6mxz9pxte0graqpzre5x7u680
+        value: 10000000000
+  - fund:
+      - address: ca1qv7t7lnpjjrxyu8wtpv03qwcu338qu54x234kq85mmh86s40lwg4sswx0lt
+        value: 10000000000
+  - fund:
+      - address: ca1qwu63vms5e7wmgsvxc9z3j94kgdzfyf6ecae9mxu9nvdjzealqx8742l2f8
+        value: 10000000000
+  - fund:
+      - address: ca1qvypv7t6lz4nzqk2jt2wt7d9dnyx3alkuu68g62v3k9w4rpuzwxsjwt0wax
+        value: 10000000000
+  - fund:
+      - address: ca1qwvg8x66dl4e5k3fpes2luyw2f8jmxna2avvwyzrwf0wf3pj4w7eq7wwraf
+        value: 10000000000
+  - fund:
+      - address: ca1qwyacz9qwanq9pshjq90683g7p956qz28nua5zly0kz8wqq7nngach9m04u
+        value: 10000000000
+  - fund:
+      - address: ca1q0x7mewyfxn79mqcdnk7x9zk28c603kn243u6rtzhvy3hxq3le4dxum9qm9
+        value: 10000000000
+  - fund:
+      - address: ca1qwjatt55hlk0kzjdjrk26jdeg7mwr70rus05wchlf24ca9z072w4g9us2zs
+        value: 10000000000
+  - fund:
+      - address: ca1qdjwlruxvr5859g0ggjshyumjtqa05mawawttqjspyxw3ets9399zq2pv5w
+        value: 10000000000
+  - fund:
+      - address: ca1q0p80rv7nypjfhak3f50gzpfcvs37xqt9rwr0atefqzlmtsft6ugsyjlxls
+        value: 10000000000
+  - fund:
+      - address: ca1qd30kssg3jaz3y8pmnujx3yufvkptkcl4jfy42xhqgpf4enp8hvlurvrm4y
+        value: 10000000000
+  - fund:
+      - address: ca1qwu3fu2rcuryjnp7umggr273j4t5j78crcryyv8mzd9xqskkclpf65cqvhg
+        value: 10000000000
+  - fund:
+      - address: ca1qvzcaclqepcyj592298evcp9020v9caz22fp7jrjy7ukqar6722hugsau47
+        value: 10000000000
+  - fund:
+      - address: ca1qwaljxgmcx5hqfksedqcem698r366crldw5zgdscau47h09m9p9wywtpq2v
+        value: 10000000000
+  - fund:
+      - address: ca1qd5wrukshsls3rtzdagdr7r2e0qprd7xtrw0krhym96e6ckvl4wnwvgece8
+        value: 10000000000
+  - fund:
+      - address: ca1q0q98y34xnxsv6vjmnav3pytva7qwwmc92jwe8f3pq4da7kedw3vjyvm3vl
+        value: 10000000000
+  - fund:
+      - address: ca1qdvw6e5l3agu2a6lm6t48q24vq270pmrsk0z4eks6u0ck0cc8cgey5lw7l2
+        value: 10000000000
+  - fund:
+      - address: ca1qwwfjq00zfghj9aeymg4htdnmyj7f3vp8wyuxk07sxsa8la669mtqnp7twf
+        value: 10000000000
+  - fund:
+      - address: ca1qvjch9027g7es9umshzvxn8vla6skelxg075sympj6xj5xcnhvktykkknz7
+        value: 10000000000
+  - fund:
+      - address: ca1qd68yktf9hxmyxjkaxns5jy60n03wmpak99ddyj3mdju3z6zkhqcwlyd7wv
+        value: 10000000000
+  - fund:
+      - address: ca1qvm9e7uzdn6t2xw5djl0tqfzqvuel9kdwcwqxhpje69mne869qzu29ne3gc
+        value: 10000000000
+  - fund:
+      - address: ca1qwc2mkzy03aq4m3emlv9ps9yftrm5jp2v2m2qmku8axk89tm46g0c98gmw3
+        value: 10000000000
+  - fund:
+      - address: ca1q0plygayk3uar5edfc3kn50qnz3x7p0j2t6hm95d56nw6es7t5tpwlkz88k
+        value: 10000000000
+  - fund:
+      - address: ca1q0tyef20zaulk50azgg7xs9mfmefsrl6czmze0rkl0y5vt06fhq27tekdnr
+        value: 10000000000
+  - fund:
+      - address: ca1q0v9m63x5ckuwjta05pgnmrswfhu9kldwku0e2cvv3sl4mel7e37yccyq2r
+        value: 10000000000
+  - fund:
+      - address: ca1qwurz4n6up3z5yjp7f555h8r537ha0lc09a33h7787hv8d6xpql5k3z9nhh
+        value: 10000000000
+  - fund:
+      - address: ca1q079pjuhawq0y6n35pd5ef8vcu6nhuwm7v2syzplny522gqssx08uflwffa
+        value: 10000000000
+  - fund:
+      - address: ca1qdlfg97k439pedhsa697zmvndvwxll3jjxz8pj6feyah0neu2u3uc9mfkws
+        value: 10000000000
+  - fund:
+      - address: ca1qwzks8pyrpqx49ut29slkqfukcj83uvp530ynd84v379lt3jxsw4jxzltn9
+        value: 10000000000
+  - fund:
+      - address: ca1qw8y06vafakkf6vtayur55e36vwpkgct5qf3tpq5wk58k3tkfgca7d5dq8z
+        value: 10000000000
+  - fund:
+      - address: ca1q07hkkskfjllhjenuac42wrwgqtvntg6hp4nerxcczrswkxyrwsegayrdz5
+        value: 10000000000
+  - fund:
+      - address: ca1q0pjmjc3x9xm50kuyj7lujhfyjvda63jc0azsvxrxg6ap475pdeycp2vhqg
+        value: 10000000000
+  - fund:
+      - address: ca1qww9dl2qeevdngnhdawpv3p24fhtry9p4sarpyxjdkxa974hxq8c2m8fjs5
+        value: 10000000000
+  - fund:
+      - address: ca1q0gzzns3ew03zaqh96w9z7apk08h4tzsjlge04vmdx4285t8d48gvpfxufc
+        value: 10000000000
+  - fund:
+      - address: ca1qwak9vz9kmfzslfq0u38xx3u95hrkga7yccmgndn2x73xmwhsvwny467j8z
+        value: 10000000000
+  - fund:
+      - address: ca1qv0r997gvafxfserm84nqg7hnv27wsqnam4egaw4mcuk3uuh9x5lul8q73d
+        value: 10000000000
+  - fund:
+      - address: ca1qdyk3jmk3948txnkqadgyv53mxnn9mldktxdpjytm2j5kyft3m2ku37tlsl
+        value: 10000000000
+  - fund:
+      - address: ca1qv4rgwjhn5xjdvmva7zj73lmuqjhzetqgmerl26eafmkhah04yjysdzqsep
+        value: 10000000000
+  - fund:
+      - address: ca1q0fyk2ngfrjetatpsduksa2w8zxnl9qw4mmzh580ss0uc2hh8c7pkvkr8p2
+        value: 10000000000
