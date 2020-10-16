@@ -25,7 +25,8 @@ import (
 	"github.com/input-output-hk/jorvit/internal/webproxy"
 	"github.com/rinor/jorcli/jcli"
 	"github.com/rinor/jorcli/jnode"
-	_ "github.com/rinor/vitcli/vservice"
+	"github.com/rinor/vitcli/vcli"
+	"github.com/rinor/vitcli/vstation"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -104,6 +105,14 @@ func loadFundInfo(file string) error {
 	return funds.Initialize(file)
 }
 
+func votePlansNeeded(proposalsTot int, max int) int {
+	votePlansNeeded, more := proposalsTot/max, proposalsTot%max
+	if more > 0 {
+		votePlansNeeded = votePlansNeeded + 1
+	}
+	return votePlansNeeded
+}
+
 type sliceFlag []string
 
 func (sf *sliceFlag) String() string {
@@ -142,12 +151,10 @@ func main() {
 	startNode := flag.Bool("start-node", true, "Start jörmungandr node. When false only config will be generated")
 
 	// vit service station settings
-	vitAddrPort := flag.String("vit-station", "127.0.0.1:3030", "Address where vit-servicing-station-server should listen in IP:PORT format")
+	vitAddrPort := flag.String("vit-station", "0.0.0.0:3030", "Address where vit-servicing-station-server should listen in IP:PORT format")
 	vitLogLevel := flag.String("vit-log-level", "warn", "vit-servicing-station-server log level, [off, critical, error, warn, info, debug, trace]")
 	// extra vit
 	startVit := flag.Bool("start-vit", true, "Start vit-servicing-station-server. When false only config will be generated")
-
-	_, _, _ = vitAddrPort, vitLogLevel, startVit
 
 	// external proposal data
 	proposalsPath := flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
@@ -193,9 +200,6 @@ func main() {
 	// in memory service only
 	dateTimeFormat := flag.String("time-format", time.RFC3339, "Date/Time format that will be used for display (go lang format), ex: \"2006-01-02 15:04:05 -0700 MST\"")
 
-	// Dump raw data
-	dumpRaw := flag.String("dump-raw", "", "Path to dump raw data like voteplan.json, voteplan.cert, funds.csv, voteplans.csv, proposals.csv")
-
 	// version info
 	version := flag.Bool("version", false, "Print current app version and build info")
 
@@ -214,6 +218,9 @@ func main() {
 	if *nodeLogLevel == "" {
 		*nodeLogLevel = "warn"
 	}
+	if *vitLogLevel == "" {
+		*vitLogLevel = "warn"
+	}
 
 	// check if file exist - duplicate data check is performed later on
 	for i := range bftLeadersSecretKeys {
@@ -227,11 +234,6 @@ func main() {
 		if inputLeaders > *bftLeaderTot {
 			*bftLeaderTot = inputLeaders
 		}
-	}
-
-	if *dumpRaw != "" {
-		*dumpRaw, err = filepath.Abs(*dumpRaw)
-		kit.FatalOn(err)
 	}
 
 	if *dateTimeFormat == "" {
@@ -350,16 +352,19 @@ func main() {
 		log.Fatalf("[%s] - not provided", "proposals file")
 	case *fundsPath == "":
 		log.Fatalf("[%s] - not provided", "fund file")
-		//
+
 	case *bftLeaderTot == 0:
 		log.Fatalf("[%s: %d] - wrong value", "bftLeaderTot", *bftLeaderTot)
-		//
+
 	case *proxyAddrPort == "":
 		log.Fatalf("[%s] - not set", "proxy")
 	case *restAddrPort == "":
 		log.Fatalf("[%s] - not set", "rest")
 	case *nodeAddrPort == "":
 		log.Fatalf("[%s] - not set", "node")
+
+	case *vitAddrPort == "":
+		log.Fatalf("[%s] - not set", "vit-station")
 	}
 
 	nodeListen := strings.Split(*nodeAddrPort, ":")
@@ -388,6 +393,10 @@ func main() {
 		// General
 		consensus      = "bft" // bft or genesis_praos
 		discrimination = ""    // "" (empty defaults to "production")
+
+		// Directories within main working dir "jnode_VIT_xxxxx"
+		votePlanDir   = "vote_plans"
+		vitStationDir = "vit_station"
 	)
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -402,10 +411,22 @@ func main() {
 	jcliVersion, err := jcli.VersionFull()
 	kit.FatalOn(err, kit.B2S(jcliVersion))
 
-	// create a new temporary directory inside your systems temp dir
+	/* Working directories */
+
+	// create a new working directory
 	workingDir, err := ioutil.TempDir(dir, "jnode_VIT_")
 	kit.FatalOn(err, "workingDir")
 	log.Printf("Working Directory: %s", workingDir)
+
+	// directory to dump the voteplan(s) config(s) and certificate(s)
+	votePlanDir = filepath.Join(workingDir, votePlanDir)
+	err = os.Mkdir(votePlanDir, 0755)
+	kit.FatalOn(err, "votePlanDir")
+
+	// directory to dump the vit servicing station configs
+	vitStationDir = filepath.Join(workingDir, vitStationDir)
+	err = os.Mkdir(vitStationDir, 0755)
+	kit.FatalOn(err, "vitStationDir")
 
 	/* BFT LEADER(s) */
 
@@ -424,15 +445,18 @@ func main() {
 		)
 
 		switch {
+
 		case len(bftLeadersSecretKeys)-bftFileIdx > 0:
 			leaderSK, err = ioutil.ReadFile(bftLeadersSecretKeys[bftFileIdx])
 			kit.FatalOn(err, kit.B2S(leaderSK))
 			leaderPK, err = jcli.KeyToPublic(leaderSK, "", "")
 			kit.FatalOn(err, kit.B2S(leaderPK))
 			bftFileIdx++
+
 		case len(bftLeadersPublicKeys)-bftPkIdx > 0:
 			leaderPK = []byte(bftLeadersPublicKeys[bftPkIdx])
 			bftPkIdx++
+
 		default:
 			leaderSK, err = jcli.KeyGenerate("", "Ed25519", "")
 			kit.FatalOn(err, kit.B2S(leaderSK))
@@ -443,6 +467,7 @@ func main() {
 		if leadersPubKey[kit.B2S(leaderPK)] {
 			i-- // needed to reach bftLeaderTot, won't go below 0
 			log.Printf("***** Duplicate BFT Leader skip: %s *****", kit.B2S(leaderPK))
+			log.Println()
 			continue
 		}
 		leadersPubKey[kit.B2S(leaderPK)] = true
@@ -509,11 +534,13 @@ func main() {
 			// Check if committee pk is on bft leaders
 			if leadersPubKey[committeeAuthPublicKeys[i]] {
 				log.Printf("***** Duplicate Committee member on BFT Leader, skip: %s *****", committeeAuthPublicKeys[i])
+				log.Println()
 				continue
 			}
 
 			if committeePubKey[committeeAuthPublicKeys[i]] {
 				log.Printf("***** Duplicate Committee member, skip: %s *****", committeeAuthPublicKeys[i])
+				log.Println()
 				continue
 			}
 			committeePubKey[committeeAuthPublicKeys[i]] = true
@@ -637,29 +664,30 @@ func main() {
 			jcliVotePlans[i].Certificate = kit.B2S(scert)
 		}
 
-		if *dumpRaw != "" {
-			vpj, err := os.Create(filepath.Join(*dumpRaw, jcliVotePlans[i].Payload+"_voteplan_"+kit.B2S(id)+".json"))
-			kit.FatalOn(err, "VotePlan json CREATE", kit.B2S(id))
-			_, err = vpj.Write(stdinConfig)
-			kit.FatalOn(err, "VotePlan json WRITE", kit.B2S(id))
-			err = vpj.Close()
-			kit.FatalOn(err, "VotePlan json CLOSE", kit.B2S(id))
+		// VotePlan - configuration
+		vpj, err := os.Create(filepath.Join(votePlanDir, jcliVotePlans[i].Payload+"_voteplan_"+kit.B2S(id)+".json"))
+		kit.FatalOn(err, "VotePlan json CREATE", kit.B2S(id))
+		_, err = vpj.Write(stdinConfig)
+		kit.FatalOn(err, "VotePlan json WRITE", kit.B2S(id))
+		err = vpj.Close()
+		kit.FatalOn(err, "VotePlan json CLOSE", kit.B2S(id))
 
-			vpuc, err := os.Create(filepath.Join(*dumpRaw, jcliVotePlans[i].Payload+"_voteplan_"+kit.B2S(id)+".cert-unsigned"))
-			kit.FatalOn(err, "VotePlan cert-unsigned CREATE", kit.B2S(id))
-			_, err = vpuc.Write(ucert)
-			kit.FatalOn(err, "VotePlan cert-unsigned WRITE", kit.B2S(id))
-			err = vpuc.Close()
-			kit.FatalOn(err, "VotePlan cert-unsigned CLOSE", kit.B2S(id))
+		// VotePlan - unsigned certificate
+		vpuc, err := os.Create(filepath.Join(votePlanDir, jcliVotePlans[i].Payload+"_voteplan_"+kit.B2S(id)+".cert-unsigned"))
+		kit.FatalOn(err, "VotePlan cert-unsigned CREATE", kit.B2S(id))
+		_, err = vpuc.Write(ucert)
+		kit.FatalOn(err, "VotePlan cert-unsigned WRITE", kit.B2S(id))
+		err = vpuc.Close()
+		kit.FatalOn(err, "VotePlan cert-unsigned CLOSE", kit.B2S(id))
 
-			if len(scert) > 0 {
-				vpsc, err := os.Create(filepath.Join(*dumpRaw, jcliVotePlans[i].Payload+"_voteplan_"+kit.B2S(id)+".cert-signed"))
-				kit.FatalOn(err, "VotePlan cert-signed CREATE", kit.B2S(id))
-				_, err = vpsc.Write(scert)
-				kit.FatalOn(err, "VotePlan cert-signed WRITE", kit.B2S(id))
-				err = vpsc.Close()
-				kit.FatalOn(err, "VotePlan cert-signed CLOSE", kit.B2S(id))
-			}
+		// VotePlan - signed certificate
+		if len(scert) > 0 {
+			vpsc, err := os.Create(filepath.Join(votePlanDir, jcliVotePlans[i].Payload+"_voteplan_"+kit.B2S(id)+".cert-signed"))
+			kit.FatalOn(err, "VotePlan cert-signed CREATE", kit.B2S(id))
+			_, err = vpsc.Write(scert)
+			kit.FatalOn(err, "VotePlan cert-signed WRITE", kit.B2S(id))
+			err = vpsc.Close()
+			kit.FatalOn(err, "VotePlan cert-signed CLOSE", kit.B2S(id))
 		}
 
 		// Update Fund info with VotePlans Data - TODO: when defined update to support multiple funds
@@ -692,6 +720,10 @@ func main() {
 			kit.FatalOn(err, "AddInitialCertificate")
 		}
 	}
+
+	log.Printf("VIT - Voteplan(s) data are dumped at (%s)", votePlanDir)
+	log.Println()
+
 	//////////////////////////////////////////////
 	/* TODO: TMP - remove once/if properly defined */
 	if funds.First().StartTime == "" {
@@ -712,37 +744,35 @@ func main() {
 	/* TODO: TMP - remove once/if properly defined */
 	//////////////////////////////////////////////
 
-	if *dumpRaw != "" {
-		// FUNDS
-		fundsFile, err := os.Create(filepath.Join(*dumpRaw, "sql_funds.csv"))
-		kit.FatalOn(err, "Funds csv CREATE")
-		f := []*loader.FundData{funds.First()}
-		err = gocsv.MarshalFile(&f, fundsFile) // Use this to save the CSV back to the file
-		kit.FatalOn(err, "Funds csv WRITE")
-		err = fundsFile.Close()
-		kit.FatalOn(err, "Funds csv CLOSE")
+	// FUNDS - dump
+	fundsFile, err := os.Create(filepath.Join(vitStationDir, "sql_funds.csv"))
+	kit.FatalOn(err, "Funds csv CREATE")
+	f := []*loader.FundData{funds.First()}
+	err = gocsv.MarshalFile(&f, fundsFile) // Use this to save the CSV back to the file
+	kit.FatalOn(err, "Funds csv WRITE")
+	err = fundsFile.Close()
+	kit.FatalOn(err, "Funds csv CLOSE")
 
-		// VOTEPLANS
-		votePlansFile, err := os.Create(filepath.Join(*dumpRaw, "sql_voteplans.csv"))
-		kit.FatalOn(err, "Voteplans csv CREATE")
-		vp := funds.First().VotePlans
-		err = gocsv.MarshalFile(&vp, votePlansFile)
-		kit.FatalOn(err, "Voteplans csv WRITE")
-		err = votePlansFile.Close()
-		kit.FatalOn(err, "Voteplans csv CLOSE")
+	// VOTEPLANS - dump
+	votePlansFile, err := os.Create(filepath.Join(vitStationDir, "sql_voteplans.csv"))
+	kit.FatalOn(err, "Voteplans csv CREATE")
+	vp := funds.First().VotePlans
+	err = gocsv.MarshalFile(&vp, votePlansFile)
+	kit.FatalOn(err, "Voteplans csv WRITE")
+	err = votePlansFile.Close()
+	kit.FatalOn(err, "Voteplans csv CLOSE")
 
-		// PROPOSALS
-		proposalsFile, err := os.Create(filepath.Join(*dumpRaw, "sql_proposals.csv"))
-		kit.FatalOn(err, "Proposals csv CREATE")
-		p := proposals.All()
-		err = gocsv.MarshalFile(p, proposalsFile)
-		kit.FatalOn(err, "Proposals csv WRITE")
-		err = proposalsFile.Close()
-		kit.FatalOn(err, "Proposals csv CLOSE")
+	// PROPOSALS - dump
+	proposalsFile, err := os.Create(filepath.Join(vitStationDir, "sql_proposals.csv"))
+	kit.FatalOn(err, "Proposals csv CREATE")
+	p := proposals.All()
+	err = gocsv.MarshalFile(p, proposalsFile)
+	kit.FatalOn(err, "Proposals csv WRITE")
+	err = proposalsFile.Close()
+	kit.FatalOn(err, "Proposals csv CLOSE")
 
-		log.Printf("VIT - important data are dumped at (%s)", *dumpRaw)
-		log.Println()
-	}
+	log.Printf("VIT - Station data are dumped at (%s)", vitStationDir)
+	log.Println()
 
 	block0Yaml, err := block0cfg.ToYaml()
 	kit.FatalOn(err)
@@ -880,6 +910,84 @@ func main() {
 		}
 	}
 
+	//////////////////////
+	// VIT station data //
+	//////////////////////
+
+	// vit-servicing-station-cli
+	var (
+		vcliBin     string
+		vcliVersion []byte
+
+		vitDb      = filepath.Join(vitStationDir, "database.sqlite3")
+		vitCfgFile = filepath.Join(vitStationDir, "vit_cfg.json")
+	)
+
+	// Check for vit-servicing-station-cli binary. Local folder first (vit_bins), then PATH
+	vcliBin, err = kit.FindExecutable("vit-servicing-station-cli", "vit_bins")
+	if err != nil {
+		log.Printf("***** %s - DB data related to %s will NOT be generated", err.Error(), "vit-servicing-station")
+		vcliBin = ""
+	} else {
+		vcli.BinName(vcliBin)
+	}
+
+	if vcliBin != "" {
+		// get vit-servicing-station-cli version
+		vcliVersion, err = vcli.Version()
+		kit.FatalOn(err, kit.B2S(vcliVersion))
+
+		// init database
+		out, err := vcli.DbInit(vitDb)
+		kit.FatalOn(err, "vcli.DbInit", kit.B2S(out))
+
+		// populate the database with already dumped data
+		out, err = vcli.CsvDataLoad(vitDb, fundsFile.Name(), proposalsFile.Name(), votePlansFile.Name())
+		kit.FatalOn(err, "vcli.CsvDataLoad", kit.B2S(out))
+	}
+
+	// vit-servicing-station-server
+	var (
+		vstationBin     string
+		vstationVersion []byte
+	)
+
+	vs := vstation.NewVstation()
+	vs.WorkingDir = vitStationDir
+	vs.Address = *vitAddrPort
+	vs.Block0Path = block0BinFile
+	vs.DbUrl = vitDb
+	vs.Log.LogLevel = *vitLogLevel
+	vs.Log.LogOutputPath = filepath.Join(vitStationDir, "vit_station.log")
+	vs.Cors.AllowedOrigins = strings.Split(*restCorsAllowed, ",")
+
+	vsJson, err := json.MarshalIndent(&vs, "", " ")
+	kit.FatalOn(err, "vstation json.MarshalIndent")
+	err = ioutil.WriteFile(vitCfgFile, vsJson, 0755)
+	kit.FatalOn(err, "vstation ioutil.WriteFile", vitCfgFile)
+
+	// Check for vit-servicing-station-server binary. Local folder first (vit_bins), then PATH
+	vstationBin, err = kit.FindExecutable("vit-servicing-station-server", "vit_bins")
+	if err != nil {
+		log.Printf("***** %s", err.Error())
+		vstationBin = ""
+	} else {
+		vstation.BinName(vstationBin)
+	}
+
+	if vstationBin != "" {
+		// get vit-servicing-station-server version
+		vstationVersion, err = vstation.Version()
+		kit.FatalOn(err, kit.B2S(vstationVersion))
+
+		if *startVit {
+			err = vs.Run()
+			if err != nil {
+				log.Fatalf("vs.Run FAILED: %v", err)
+			}
+		}
+	}
+
 	////////////////////
 	// internal proxy //
 	////////////////////
@@ -900,6 +1008,7 @@ func main() {
 	log.Printf("node: %s", jnodeBin)
 	log.Printf("ver : %s", jormungandrVersion)
 	log.Println()
+
 	log.Printf("VIT - BFT Genesis Hash: %s\n", kit.B2S(block0Hash))
 	log.Println()
 	log.Printf("VIT - BFT Genesis: %s - %d", "COMMITTEE", len(block0cfg.BlockchainConfiguration.Committees)+len(block0cfg.BlockchainConfiguration.ConsensusLeaderIds))
@@ -910,10 +1019,24 @@ func main() {
 	log.Printf("JÖRMUNGANDR listening at: %s - %v", p2pListenAddress, *startNode)
 	log.Printf("JÖRMUNGANDR Rest API available at: http://%s/api - %v", restAddress, *startNode)
 	log.Println()
+	log.Printf("VIT-STATION API available at: http://%s/api - %v", *vitAddrPort, *startVit)
+	log.Println()
 	log.Printf("APP - PROXY Rest API available at: http://%s/api", proxyAddress)
 	log.Println()
 	log.Println("VIT - BFT Genesis Node - Running...")
 	log.Println()
+
+	if vstationBin != "" {
+		log.Printf("\t%s %s", vstationBin, strings.Join(vs.BuildCmdArg(), " "))
+		log.Println()
+	}
+
+	log.Printf("\t%s %s", jnodeBin, strings.Join(node.BuildCmdArg(), " "))
+	log.Println()
+
+	if *startVit && vstationBin != "" {
+		vs.Wait() // Wait for the vit station to stop.
+	}
 
 	if *startNode {
 		node.Wait() // Wait for the node to stop.
@@ -927,9 +1050,6 @@ func main() {
 			log.Println("The node has stopped. Please start the node manually and keep the same running config or issue SIGINT/SIGTERM again.")
 		}
 
-		log.Printf("%s %s", jnodeBin, strings.Join(node.BuildCmdArg(), " "))
-		log.Println()
-
 		// Listen for the service syscalls
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -942,12 +1062,4 @@ func main() {
 	}
 
 	log.Println("...VIT - BFT Genesis Node - Done") // All done. Node has stopped.
-}
-
-func votePlansNeeded(proposalsTot int, max int) int {
-	votePlansNeeded, more := proposalsTot/max, proposalsTot%max
-	if more > 0 {
-		votePlansNeeded = votePlansNeeded + 1
-	}
-	return votePlansNeeded
 }
