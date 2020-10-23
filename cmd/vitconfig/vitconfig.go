@@ -211,8 +211,8 @@ func main() {
 	version := flag.Bool("version", false, "Print current app version and build info")
 
 	// fund each btf leader and/or committee auth account address
-	flag.Uint64Var(&bftLeaderFund, "bft-leader-fund", 1_000_000, "Lovelace amount to fund bft leader account")
-	flag.Uint64Var(&committeeFund, "committee-auth-fund", 1_000_000, "Lovelace amount to fund committee auth account")
+	flag.Uint64Var(&bftLeaderFund, "bft-leader-fund", 0, "Lovelace amount to fund bft leader account")
+	flag.Uint64Var(&committeeFund, "committee-auth-fund", 0, "Lovelace amount to fund committee auth account")
 
 	flag.Parse()
 
@@ -537,7 +537,7 @@ func main() {
 		err = block0cfg.AddConsensusLeader(leaders[i].pk)
 		kit.FatalOn(err)
 
-		// add bft leader(s) accounts to block0 (with bftLeaderFund value)
+		// add bft leader(s) accounts to block0 (with bftLeaderFund value > 0)
 		if bftLeaderFund > 0 {
 			err = block0cfg.AddInitialFund(leaders[i].acc, bftLeaderFund)
 			kit.FatalOn(err)
@@ -567,7 +567,7 @@ func main() {
 			kit.FatalOn(err, kit.B2S(pk))
 			block0cfg.AddCommittee(kit.B2S(pk))
 
-			// add committee accounts to block0 (with committeeFund value)
+			// add committee accounts to block0 (with committeeFund value > 0)
 			if committeeFund > 0 {
 				comACC, err := jcli.AddressAccount(committeeAuthPublicKeys[i], "", "")
 				kit.FatalOn(err, kit.B2S(comACC))
@@ -861,7 +861,11 @@ func main() {
 	if *genesisExtraDataPath != "" {
 		bulkExtraData, err := ioutil.ReadFile(*genesisExtraDataPath)
 		kit.FatalOn(err)
+
 		if len(bulkExtraData) > 0 {
+			if len(block0cfg.Initial) == 0 {
+				block0Yaml = append(block0Yaml, "\ninitial:\n"...)
+			}
 			block0Yaml = append(block0Yaml, bulkExtraData...)
 		}
 	}
