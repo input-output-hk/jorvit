@@ -6,6 +6,8 @@ Tools to manage and test self VIT node operations and integrations.
 
 1. Download the latest release from releases page [https://github.com/input-output-hk/jorvit/releases](https://github.com/input-output-hk/jorvit/releases)
 2. Download the jörmungandr nightly binaries from [https://github.com/input-output-hk/jormungandr/releases/tag/nightly](https://github.com/input-output-hk/jormungandr/releases/tag/nightly) and place them inside `jor_bins` folder
+3. Download the servicing station binaries from [https://github.com/input-output-hk/vit-servicing-station/releases](https://github.com/input-output-hk/vit-servicing-station/releases) and place them inside `vit_bins` folder
+
 
 ### Usage
 
@@ -14,176 +16,110 @@ Upon installation the content/structure of the working folder should be like:
 ```sh
 .
 ├── assets
-│   ├── fund.csv       <-- fund general info
-│   └── proposals.csv  <-- proposals list example
+│   ├── fund.csv                     <-- fund general info
+│   └── proposals.csv                <-- proposals list example
 ├── jor_bins
-│   ├── jcli         <-- node binary
-│   ├── jormungandr  <-- node binary
+│   ├── jcli                         <-- node binary
+│   ├── jormungandr                  <-- node binary
 │   └── Readme.md
-├── jorvit           <-- our binary
+├── vit_bins
+│   ├── vit-servicing-station-cli    <-- station binary
+│   ├── vit-servicing-station-server <-- station binary
+│   └── Readme.md
+├── jorvit                           <-- our binary
 └── README.md
 
-2 directories, 7 files
+3 directories, 10 files
 ```
 
 Just execute `jorvit` binary within a shell and the application will start in foreground
 and will display some informations related to the content and services it provides.
 
+There are a lot of config parameters that you can use for the configurations
+
 ```log
-➜  jorvit_Linux_x86_64 ./jorvit
-2020/05/26 19:38:35 Proposals File load took 708.645µs
-2020/05/26 19:38:35 Fund File load took 120.893µs
-2020/05/26 19:38:35 Working Directory: /tmp/jorvit_Linux_x86_64/jnode_VIT_741709330
-2020/05/26 19:38:35
-2020/05/26 19:38:35 OS: linux, ARCH: amd64
-2020/05/26 19:38:35
-2020/05/26 19:38:35 jcli: /tmp/jorvit_Linux_x86_64/jor_bins/jcli
-2020/05/26 19:38:35 ver : jcli 0.9.0-nightly (master-c87061eb, release, linux [x86_64]) - [rustc 1.43.1 (8d69840ab 2020-05-04)]
-2020/05/26 19:38:35
-2020/05/26 19:38:35 node: /tmp/jorvit_Linux_x86_64/jor_bins/jormungandr
-2020/05/26 19:38:35 ver : jormungandr 0.9.0-nightly (master-c87061eb, release, linux [x86_64]) - [rustc 1.43.1 (8d69840ab 2020-05-04)]
-2020/05/26 19:38:35
-2020/05/26 19:38:35 VIT - BFT Genesis Hash: 9c1b9b82e86faeb43dceaa2008a2c5dded07b2b66ed0469a9fd213c262242534
-2020/05/26 19:38:35
-2020/05/26 19:38:35 VIT - BFT Genesis: COMMITTEE - 2
-2020/05/26 19:38:35 VIT - BFT Genesis: VOTEPLANS - 2
-2020/05/26 19:38:35 VIT - BFT Genesis: PROPOSALS - 20
-2020/05/26 19:38:35
-2020/05/26 19:38:35 VIT - BFT Genesis: Wallets available for recovery
-
-
-W: DAEDALUS
-M: tired owner misery large dream glad upset welcome shuffle eagle pulp time
-A: 20101
-█████████████████████████████████████████████
-█████████████████████████████████████████████
-████ ▄▄▄▄▄ ██▀█  ▀████ ▀▄ ▄▄▀█▀▀▄█ ▄▄▄▄▄ ████
-████ █   █ █ ▄███ ▄▄▄▀█ ▄▄▀▀▀▀  ██ █   █ ████
-████ █▄▄▄█ █ ██▄█▀█▀██ ▄▄ █▄▄█ ▀ █ █▄▄▄█ ████
-████▄▄▄▄▄▄▄█ ▀ █ ▀▄█▄█▄█ ▀▄█▄█ █▄█▄▄▄▄▄▄▄████
-████▄▀   ▄▄██▄▀▀█▄▄▀▀█▄▄▄▀█▀▄▄▄▄██▄ ▄▄ ▀█████
-█████ ▄▄█▄▄█▀▄▄ ▀▀▄█▀█▀█▄ ▄██▄█  ▄█▄▄▄█  ████
-████▀▄█▀▀█▄▀ ▀▀▄ ▄▄██  ▀▀▀ ▀▄▄ ▄ ▄▄▀▄ ▄██████
-████▄▀▀ █ ▄▄▀█▄▄▄█  ▀ ▀▀  █▀██▀ ▄█▀ ▄▄▄  ████
-████▄▀ ▀█ ▄▀██▀▀▀ █ ▄█▀█▀▀ ▀█ ▄█▀ ▄ ▄ ▄▄▄████
-████▄▀  ▄▀▄▄ █ ▀▄▄█ ▄█  ▀▀██ █▀ ▀  ███▄▄ ████
-████▄ ▀▄▄▄▄▀▀▄▀██▄ ▄ ▄█ ▀▀▄▀▄▄██▀ ▄ ▄▄▄▄▄████
-████▀██▄ ▄▄  █▀▀▄▄█  █▄██ ▄▀ ▄       ██ ▄████
-████ ▀▄▀  ▄ ▄ █▄    ▀█▄██▀▄▀█▄▄█▀▄▄█▄▄  ▄████
-████ █▀▀█ ▄▀ ▄▄ █ ▀█▀███   █ ██▄▀█▄ ██▄  ████
-████▄███▄█▄▄ ▄▀▄ ▀▄█▀ █▀██▄▀█ ▄  ▄▄▄ ▄▄▀█████
-████ ▄▄▄▄▄ █▀▀██ ▀█▄▄ ▀█  ▀█▀█▄█ █▄█  █▄ ████
-████ █   █ █ █▄▄█▄█ ▄█▀ ▀▀▄▀  ▄ ▄▄ ▄ ▄ █ ████
-████ █▄▄▄█ █▄▄   █▄ ▄█ █  ▀███▄ ▀▀▀▄███▄ ████
-████▄▄▄▄▄▄▄█▄▄█▄▄▄▄▄▄▄█▄██▄█▄▄▄██████▄▄▄▄████
-█████████████████████████████████████████████
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-
-
-
-W: DAEDALUS
-M: edge club wrap where juice nephew whip entry cover bullet cause jeans
-A: 101001
-█████████████████████████████████████████████
-█████████████████████████████████████████████
-████ ▄▄▄▄▄ █▄█▄▄▀▄ █▀█ ▄▀▀█▄█▄▄▄▄█ ▄▄▄▄▄ ████
-████ █   █ █▀█ ▀█▄▀ █▄▀ ▄▄█ █▀  ▄█ █   █ ████
-████ █▄▄▄█ █ █ █▄▄▄▀██▀▀▄ ▀▄█▄ ▄▄█ █▄▄▄█ ████
-████▄▄▄▄▄▄▄█ █▄▀ █▄█▄▀ ▀ ▀ ▀▄█ ▀ █▄▄▄▄▄▄▄████
-████ ██▀▄▀▄ ▄█ █▄▀ █▀█▄ ▀▄  ▄█▀▀█▄▄▄ ▄██▄████
-████▀▄█▀▄ ▄▄▄█▄ █ ▀█▄▀ █▄ █  ██ ▄ ▀██▄ ▀█████
-████▄█▀ ██▄   █▀ ▄█   ▀▄█▄█▀▄▀▀▀██▄▄▀▀▄▄▄████
-█████▄█ ▄▄▄▀██▄▄▄▄█▄▄█▄█ ▀▄  █▀   ▀ ██▀▄█████
-████▀▄▄▄▀█▄▀██▀  █ ▄▄▀▀ ▄██▀▄▀█▀  ▄ ▀█▄██████
-████ █▀█ ▄▄▄▄▀ █▀▄▀ ▀ █ ▀  ▄██  █ ██▄█▀██████
-████▀ █▄█ ▄▀▀▄▀▀▄ █▀▀▄▀█▄ ▄ █▀█▀  ▄█▀▀▄ ▄████
-████▄█▀█  ▄ █▀ ▄▀▀▄ █ ▀███▀▄██  ▀██▀▀▀ ▀▀████
-████▀▄▀█▀█▄▄ ▀▀▀▀▄ █▀▀▄▀▀▀▄ ▄▀█▀▀▄▄█▀▀ █▄████
-██████▄▄▄█▄ ████▀ ▀█▄ ▀█▄▀▀ █▄█ ▄█▀ ██▀██████
-████▄▄▄███▄█ ▄▀▀▄ █ ▀ █▄▄▄▄▀▄▀▀▄ ▄▄▄ ▄▄ ▄████
-████ ▄▄▄▄▄ █▄██▄▄▄▀  █▄██ ▄ █▄▀█ █▄█ ▄ ▀█████
-████ █   █ █▄▀██▄▀▄█▄█▀ ▄█▀▀ ▀▀█    ▄▀▄▄ ████
-████ █▄▄▄█ ██  █ ██ ▀ █ ▀ █  █  ▄█  ▀▄▀▀█████
-████▄▄▄▄▄▄▄█▄██▄▄████▄▄██▄▄█▄█▄▄██▄▄▄█▄▄▄████
-█████████████████████████████████████████████
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-
-
-
-W: YOROI
-M: neck bulb teach illegal soul cry monitor claw amount boring provide village rival draft stone
-A: 30001
-█████████████████████████████████████████████████
-█████████████████████████████████████████████████
-████ ▄▄▄▄▄ █  █▄▄▄█▀▄▄ ▄ ▄█ █ ██▀█▄▄ █ ▄▄▄▄▄ ████
-████ █   █ █▀▄▀█ ▀ ██▄███▀█▀ █▀▀█▀▄███ █   █ ████
-████ █▄▄▄█ ██▄  ▀ ▀ ▀▄█ ▀▄▄█▀█▄▄▀ ▄ ▀█ █▄▄▄█ ████
-████▄▄▄▄▄▄▄█ ▀ █ █▄▀▄▀▄█▄█▄█ █▄▀▄▀▄▀▄█▄▄▄▄▄▄▄████
-████▄▀  ▀ ▄ ███ █ ███ ▄ █ █▀██▄█  ▀▀▀▀ ▀▀ ▀  ████
-██████▀▄ █▄█▀█▀▀█▀████▄▀ █▀▄▀▀▄█ █▄▀ ▀▀  ███▀████
-█████▄█ ▀█▄ ▀ ▄ █▄▀▄ ▄▀▄ █▄  ▄ ▄█▄█ ▄█▀▄█▀▄█ ████
-████ ▀█ ██▄▀▀▀█▄▀ ▀█▀██▄▄▀  █▄█▀▀▄▄▄█▀▄█ ▄█  ████
-█████▄▄  ▀▄█▄ ▀▀▄  █▄█ █▀  ▀▀ ▀▀██ █▀▄█▄▄█▀██████
-████▄ ▄█▀▄▄█▄▄ ██ █  ▀ █▀▀▄▀ ██▄▀▀██▀ ▄ ▀  ▀█████
-█████  █  ▄▄█▄▄  ▄█ ▄██  ▀█ ▄ ▀█▀▄  ▀▀ ▀ █▄  ████
-█████▀▄ █▄▄█▄▄ ▄▀▄▄█▄█▀█▀█▄▄▄▀▄▀▄▄█▀▀ █▄▄█▄ ▀████
-████  ▄▄▀▀▄▄▀▄██▄▀▀▀  █ ██▄█ ▄▀▀▀▄▀ █▄▀██▀ █ ████
-████▀▀ ▀▀█▄▄▄▀ ▀█ ▀█▀█ ▄▄▀ █ █▀▀▀██▄   ▄█▀█▄▄████
-█████▄█▀█ ▄█  ▀▀▄ █▄▀██▀ ▄ █▄ █▀██ █▄ █▀▄▀███████
-████▄█▄▀▄▀▄▀▄▀▀▄█▀▄▀█ █ ██ ▀█▄  ▀ ███▄▀ █▀▀██████
-█████▄███▄▄▄▀ █▄▄ ▄ ▄  ▀█ █▀█▀▄▄     ▄▄▄ ▄▄█ ████
-████ ▄▄▄▄▄ █  ▄▄ ▄ █▀▀▄▀▀██▄▄▄██ █ ▄ █▄█ ██ █████
-████ █   █ █▀█▀▄█▀█████▀█▄▀▄ █ ▀▀ ██  ▄  ▀ ▀▄████
-████ █▄▄▄█ █▄▄ ▀▀▀██▄▄▀▄  ▀██▄█▀ █ ▄▀ █ █ █ ▄████
-████▄▄▄▄▄▄▄█▄▄▄▄██▄▄▄▄▄▄▄▄▄██▄████▄▄▄██▄█▄█▄█████
-█████████████████████████████████████████████████
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-
-
-
-W: DAEDALUS-PAPER
-M: town lift more follow chronic lunch weird uniform earth census proof cave gap fancy topic year leader phrase state circle cloth reward dish survey act punch bounce
-A: 40000
-█████████████████████████████████████████████████████████████
-█████████████████████████████████████████████████████████████
-████ ▄▄▄▄▄ ██ ▄ ▄▄██ ▄  ▄█▀▀ ▀█▄▄ ▄▄▄▀▀▀▄▄▀ ▄▀ ▀██ ▄▄▄▄▄ ████
-████ █   █ █  ▀    ▄██▀ █▄▄▀▄▀█▄█▄▀ ▄ ▄█  █ ▄▀▀▄▀█ █   █ ████
-████ █▄▄▄█ █ █▀▀ █▀▄▀   █ ▄▄ ▄▄▄ ▄▄█▀ ▀  █▀██▄ ███ █▄▄▄█ ████
-████▄▄▄▄▄▄▄█ ▀ ▀ ▀ █ █ ▀▄▀▄█ █▄█ █ █▄▀ █▄█▄▀ ▀ ▀▄█▄▄▄▄▄▄▄████
-████ █ ▄  ▄██▀█ █▀█▀▀ ▄▄█▀▀█ ▄▄▄   ▄ ██▄ ▀█▀██ ▀▄█▄▄  ▄▀▀████
-█████ ▀ ▀█▄▀▄  █▄█ ▄█ ▀▄▄ ▀ ▀▄▄██▄▀▄    ▄▀ ▀▀██▄▄▄▄▀▄ ▄▀█████
-████ ▄▀█▄█▄ ██▀█▄ █▀▄█ ▄█▀▀█▄█▄█▀▄  ▀ █▄  ▄▄█  ▀▄ █ ▄▀▄█▀████
-████▄▄▄█ ▀▄▄ █ ▀▀ ▄▀▀▀▀▄▀▄▀█▀▀▄▀█▄ ▄▀▄ █▄▄▄▀ ▀█▄█ ▄▀▄▄███████
-████▄███▀▄▄ ▀ ▄▄█▄▀▀▀▄█▀ █▀▀▀█▄ ▀▀▀▄█▄ ▄ ▀█▀▀▀▀▀▄ █  █▄▀▀████
-████ █▀▀  ▄▄▀ ▄▄▄ █▀▄▄▀▀█▀ ▀▀█▄██▀▀▀▀▄▀▄▄▀  ▀██▀ ▄▄▀▄▀█▄█████
-████▀▄█▀█▀▄▄▀█▀█  █▄   ▀▀▀▄  █  ▄  ▄▀█▄▄  ▄▀█   ▄▄█  ▄ ▀▀████
-████▄█  █ ▄▀ █▀▀ ▀██▄███▄▄▀▀▄ █▀  ▀▄ ▀▄▄█▄▄ ▀ █▀▄▄▄█▄▄█▀▀████
-█████▀█▀ ▄▄▄ █ ▄ ▄▄▀█▄▄█ ▀▀▀ ▄▄▄    ▀▄█ ▄▀█▀█▀▀  ▄▄▄ ▀ █▀████
-████ █ █ █▄█  █▀█▄ ▄█▀▄█ ▄▀  █▄█ █▀▀█▄▄▀▄▀▄█ █▀▄ █▄█  ▄▀█████
-████▀  ▄▄▄▄▄▄ █  █ █▀▀█▄ ▀▀▀   ▄ ▀▀▀███ ▄ █▀█▀ █▄ ▄   ▄▄▀████
-████  █▄  ▄▄ ▀█▄  ▄▄▀▀▀▄ ▄██ ▄ ▄▄▀█▀▀ ▄▄██▄ ▀▀▀▀▀ ▀█▀ ██▀████
-████▄▀▄ ▀█▄█ █▄▄ ▄█▀▄█▀███▀ ▄▄▄ █▀█ █▄█▀▄▀█▀▀▀▀██▀▄█▀█▄ ▀████
-████ ▄▄▄▄▄▄   █▀   ▄▄ ▄▄▀███ ██▄▄▀▄▄▀▀▄▀▄█▄▄▀█▀▀▀▀▀▀█▀█▀▀████
-████▄█▀  ▄▄▄█  █▄▀█▀█  ███▀▀▄▄▀▄█ ▀█▀▀█▄▄ ▄█▀ ▀▀▀ █▀▀█▄▀▀████
-████▄▀ ▄▄ ▄  █ █▄▀▀ ▄  ▀ ▄█▀█  █▄█▀█▀███▄▀▄▀ ▄▀▀▀█▀▄  ▄█▀████
-████▀▄▀▄▀▀▄▄ █▄▄▄ ▄▄ ▀▀▀▀▄█ █▄▀ █▄▀ █▀▄ ▄ █ █▀▀█  █▀▀▄▄▄▀████
-████▄ ▀▄▄▄▄ ▀█ █ █▄▀▀█▀▄█ ▀█▄██▄▄█▀▄▀ ▄▄█▀▄  █▀▀▀▀▀▀ ▀███████
-███████▄██▄█▀██ █▀▄█▀ ▄ ▀█▀  ▄▄▄   ▄██▄▄▄▀▄█▀ ▀▀ ▄▄▄ ▀▄ ▀████
-████ ▄▄▄▄▄ █▀▀ ▄▄ ▀█▀▀ ▄▀▀ █ █▄█ ▀▀██ ▄▄██▄ ▀▀██ █▄█  ▄ █████
-████ █   █ █ ▄▀▄▀▀██▄▄▄ █▀▄▀  ▄  █ ▄ ██▄  █▄█    ▄▄▄▄█   ████
-████ █▄▄▄█ █▄▄█▀ █▀█▄▀██▀ ██▄▄▄█▄█▀▄ ▀▄▄█▄ ▄ ▀█▄█▀█ ▄ █ ▄████
-████▄▄▄▄▄▄▄█▄▄█▄▄██████▄███▄▄▄▄▄█▄▄▄█▄▄▄▄▄███▄███▄▄▄▄▄▄██████
-█████████████████████████████████████████████████████████████
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-
-2020/05/26 19:38:35
-2020/05/26 19:38:35 JÖRMUNGANDR listening at: /ip4/127.0.0.11/tcp/9001
-2020/05/26 19:38:35 JÖRMUNGANDR Rest API available at: http://0.0.0.0:8001/api
-2020/05/26 19:38:35
-2020/05/26 19:38:35 APP - PROXY Rest API available at: http://0.0.0.0:8000/api
-2020/05/26 19:38:35
-2020/05/26 19:38:35 VIT - BFT Genesis Node - Running...
-
+  -allow-node-restart
+    	Allows to stop the node started from the service and restart it manually (default true)
+  -bft-leader-fund uint
+    	Lovelace amount to fund bft leader account
+  -bft-leader-min uint
+    	Minimun number of BFT Leaders. NEW SK/PK key pair(s) will be autogenerated if > "bft-leader-secret-key" + "bft-leader-public-key". min: 1 (default 1)
+  -bft-leader-public-key value
+    	PK (public key) to be used as BFT leader. No config file will be generated for this (since don't have the SK). ex: ed25519_pk15f7p4nzektlrj6muvvmn0hatzekg7yf0qjx54pg72qq2zgjjzdzqwhm8rz
+  -bft-leader-secret-key value
+    	File containing SK (secret key) to be used as BFT leader
+  -block0-voteplan
+    	Enable/Disable inclusion of proposals/voteplans signed certificate on block0
+  -committee-auth-fund uint
+    	Lovelace amount to fund committee auth account
+  -committee-auth-public-key value
+    	Global committee member public key. ex: ed25519_pk15f7p4nzektlrj6muvvmn0hatzekg7yf0qjx54pg72qq2zgjjzdzqwhm8rz
+  -committee-duration string
+    	Committee period duration. Ignored if 'committee-end' is set (default "24h")
+  -committee-end string
+    	Committee end time in '2006-01-02T15:04:05Z07:00' RFC3339 format. If not set 'committee-duration' will be used
+  -committee-privacy-public-key value
+    	Privacy committee member public key used to build encyption key, hex encoded
+  -cors string
+    	Comma separated list of CORS allowed origins (default "http://127.0.0.1,http://localhost")
+  -epoch-duration string
+    	Epoch period duration (default "24h")
+  -explorer
+    	Enable/Disable explorer
+  -fees-certificate uint
+    	Default certificate fee (lovelace)
+  -fees-certificate-pool-registration uint
+    	Pool registration certificate fee (lovelace)
+  -fees-certificate-stake-delegation uint
+    	Stake delegation certificate fee (lovelace)
+  -fees-certificate-vote-cast uint
+    	VoteCast certificate fee (lovelace)
+  -fees-certificate-vote-plan uint
+    	VotePlan certificate fee (lovelace)
+  -fees-coefficient uint
+    	Coefficient fee
+  -fees-constant uint
+    	Constant fee (lovelace)
+  -fees-go-to string
+    	Where to send the collected fees, rewards or treasury (default "rewards")
+  -fund string
+    	CSV full path (filename) to load FUND info from (default "./assets/fund.csv")
+  -genesis-extra-data string
+    	YAML full path (filename) to load extra genesis funds from (default "./assets/extra_genesis_data.yaml")
+  -genesis-time string
+    	Genesis time in '2006-01-02T15:04:05Z07:00' RFC3339 format (default "Now()")
+  -node string
+    	Address where Jörmungandr node should listen in IP:PORT format (default "127.0.0.1:9001")
+  -node-log-level string
+    	Jörmungandr node log level, [off, critical, error, warn, info, debug, trace] (default "warn")
+  -proposals string
+    	CSV full path (filename) to load PROPOSALS from (default "./assets/proposals.csv")
+  -proxy string
+    	Address where REST api PROXY should listen in IP:PORT format (default "0.0.0.0:8000")
+  -rest string
+    	Address where Jörmungandr REST api should listen in IP:PORT format (default "0.0.0.0:8001")
+  -shutdown-node
+    	When exiting try node shutdown in case the node was restarted manually (default true)
+  -skip-bootstrap
+    	Skip node bootstrap, in case of first/single genesis leader (default true) (default true)
+  -slot-duration string
+    	Slot period duration. 1s-255s (default "20s")
+  -start-node
+    	Start jörmungandr node. When false only config will be generated
+  -start-vit
+    	Start vit-servicing-station-server. When false only config will be generated
+  -vit-log-level string
+    	vit-servicing-station-server log level, [off, critical, error, warn, info, debug, trace] (default "warn")
+  -vit-station string
+    	Address where vit-servicing-station-server should listen in IP:PORT format (default "0.0.0.0:3030")
+  -vote-duration string
+    	Voting period duration. Ignored if 'vote-end' is set (default "144h")
+  -vote-end string
+    	Vote end time in '2006-01-02T15:04:05Z07:00' RFC3339 format. If not set 'vote-duration' will be used
+  -vote-start string
+    	Vote start time in '2006-01-02T15:04:05Z07:00' RFC3339 format. If not set 'genesis-time' will be used
+  -voteplan-proposals-max uint
+    	Max number of proposals per voteplan [1-256] (default 255)
 ```
 
 ### APP - PROXY Rest API
@@ -360,8 +296,5 @@ There are also some endpoints **proxied** to the Jörmungadr node Rest service.
 Are provided in the proxy endpoint for convenience, just to keep the same endpoint in the client.
 The api docs can be found [here](https://editor.swagger.io/?url=https://raw.githubusercontent.com/input-output-hk/jormungandr/master/doc/api/v0.yaml)
 
-- `/api/v0/account`  - needed ti update the wallet state
+- `/api/v0/account`  - needed to update the wallet state
 - `/api/v0/message`  - needed to send transactions (wallet recovery, voting, ...)
-- `/api/v0/fragment` -
-- `/api/v0/settings` -
-- `/api/v0/block`    -
