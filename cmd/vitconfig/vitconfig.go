@@ -147,7 +147,7 @@ func main() {
 	restAddrPort := flag.String("rest", "0.0.0.0:8001", "Address where Jörmungandr REST api should listen in IP:PORT format")
 	nodeAddrPort := flag.String("node", "127.0.0.1:9001", "Address where Jörmungandr node should listen in IP:PORT format")
 	explorerEnabled := flag.Bool("explorer", false, "Enable/Disable explorer")
-	restCorsAllowed := flag.String("cors", "https://api.vit.iohk.io,https://127.0.0.1,http://127.0.0.1,http://127.0.0.1:8000,http://127.0.0.1:8001,https://localhost,http://localhost,http://localhost:8000,http://localhost:8001,http://0.0.0.0:8000,http://0.0.0.0:8001", "Comma separated list of CORS allowed origins")
+	restCorsAllowed := flag.String("cors", "http://127.0.0.1,http://localhost", "Comma separated list of CORS allowed origins")
 	skipBootstrap := flag.Bool("skip-bootstrap", true, "Skip node bootstrap, in case of first/single genesis leader (default true)")
 	nodeLogLevel := flag.String("node-log-level", "warn", "Jörmungandr node log level, [off, critical, error, warn, info, debug, trace]")
 	// extra node
