@@ -112,6 +112,9 @@ func (h *V0Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case "vote":
 		serveReverseProxy("/api/v0/vote", res, req)
 		return
+	case "fragments":
+		serveReverseProxy("/api/v1/fragments", res, req)
+		return
 	default:
 		http.Error(res, "Not Found", http.StatusNotFound)
 		return

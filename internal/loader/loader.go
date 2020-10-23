@@ -83,13 +83,14 @@ func (cvo *ChainVoteOptions) MarshalCSV() (string, error) {
 }
 
 type ChainVotePlan struct {
-	VpInternalID string `json:"-"                        csv:"id"`
-	VotePlanID   string `json:"chain_voteplan_id"        csv:"chain_voteplan_id"`
-	VoteStart    string `json:"chain_vote_start_time"    csv:"chain_vote_start_time"`
-	VoteEnd      string `json:"chain_vote_end_time"      csv:"chain_vote_end_time"`
-	CommitteeEnd string `json:"chain_committee_end_time" csv:"chain_committee_end_time"`
-	Payload      string `json:"chain_voteplan_payload"   csv:"chain_voteplan_payload"`
-	FundID       string `json:"fund_id"                  csv:"fund_id"`
+	VpInternalID      string `json:"-"                         csv:"id"`
+	VotePlanID        string `json:"chain_voteplan_id"         csv:"chain_voteplan_id"`
+	VoteStart         string `json:"chain_vote_start_time"     csv:"chain_vote_start_time"`
+	VoteEnd           string `json:"chain_vote_end_time"       csv:"chain_vote_end_time"`
+	CommitteeEnd      string `json:"chain_committee_end_time"  csv:"chain_committee_end_time"`
+	Payload           string `json:"chain_voteplan_payload"    csv:"chain_voteplan_payload"`
+	VoteEncryptionKey string `json:"chain_vote_encryption_key" csv:"chain_vote_encryption_key"`
+	FundID            string `json:"fund_id"                   csv:"fund_id"`
 }
 
 type ProposalData struct {
@@ -110,7 +111,7 @@ func LoadData(r io.Reader) (*[]*ProposalData, error) {
 type FundData struct {
 	FundID               string          `json:"id,omitempty"           csv:"id"`
 	Name                 string          `json:"fund_name"              csv:"fund_name"`
-	VotingPowerThreshold uint64          `json:"voting_power_threshold" csv:"voting_power_threshold"`
+	VotingPowerThreshold Lovelace        `json:"voting_power_threshold" csv:"voting_power_threshold"`
 	Goal                 string          `json:"fund_goal"              csv:"fund_goal"`
 	VotingPowerInfo      string          `json:"voting_power_info"      csv:"voting_power_info"`
 	RewardsInfo          string          `json:"rewards_info"           csv:"rewards_info"`

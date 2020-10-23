@@ -1,12 +1,12 @@
 github.com/gocarina/gocsv v0.0.0-20200925213129-04be9ee2e1a2 h1:66G8poRcUE6rtwuckM7ZoLKlyNw5PYytEktymzi/Xds=
 github.com/gocarina/gocsv v0.0.0-20200925213129-04be9ee2e1a2/go.mod h1:5YoVOkjYAQumqlV356Hj3xeYh4BdZuLE0/nRkf2NKkI=
-github.com/rinor/jorcli v0.0.0-20200911200652-e43eb8058a41 h1:vDQtZI50gbPQ5Exbj//DOYLscrzkn5BZFVL62OPnxNU=
-github.com/rinor/jorcli v0.0.0-20200911200652-e43eb8058a41/go.mod h1:g0H93swQYhOXMd0PTL7EQOwkGTLGhtCjJ/HM+d1jKZY=
+github.com/rinor/jorcli v0.0.0-20201017114219-b53dd4009cae h1:GwvVjwf08pUZ0JzHJF3C9at+AEjkai00R9lr8TYS9J4=
+github.com/rinor/jorcli v0.0.0-20201017114219-b53dd4009cae/go.mod h1:g0H93swQYhOXMd0PTL7EQOwkGTLGhtCjJ/HM+d1jKZY=
 github.com/rinor/vitcli v0.0.0-20201016074919-07c2ff699504 h1:E5EqtZ+CvXLF0bDTMbrNgGr2q4jq5DC9WMXG5kuSz54=
 github.com/rinor/vitcli v0.0.0-20201016074919-07c2ff699504/go.mod h1:cgil4TQ5yJ4BJc7q1kegqr0h/KrclvR/fPQHPUjTshc=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
-golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee h1:4yd7jl+vXjalO5ztz6Vc1VADv+S/80LGJmyl1ROJ2AI=
-golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 h1:pLI5jrR7OSLijeIDcmRxNmw2api+jEfxLoykJVice/E=
+golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d h1:+R4KGOnez64A81RvjARKc4UT5/tI9ujCIVX+P5KiHuI=
