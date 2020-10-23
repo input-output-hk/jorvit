@@ -60,6 +60,7 @@ archives:
       - README.md
       - assets/**/*
       - jor_bins/*
+      - vit_bins/*
 
 changelog:
   sort: asc
