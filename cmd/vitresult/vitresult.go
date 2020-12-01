@@ -18,6 +18,13 @@ import (
 	"github.com/input-output-hk/jorvit/internal/loader"
 )
 
+var (
+	// Version and build info that can be set on build
+	Version    = "dev"
+	CommitHash = "none"
+	BuildDate  = "unknown"
+)
+
 type ChainTime struct {
 	Epoch  int64 `json:"epoch"`
 	SlotID int64 `json:"slot_id"`
@@ -137,16 +144,27 @@ func main() {
 		proposals []ProposalsResult
 		funds     loader.FundData
 		// Flags
-		serviceUrl      = flag.String("service-addr", "https://servicing-station.vit.iohk.io", "Address of remote service, or file://")
-		nodeUrl         = flag.String("node-addr", "https://servicing-station.vit.iohk.io", "Address of remote service, or file://")
-		votePlansUrl    = flag.String("vote-plans", "/api/v0/vote/active/plans", "Endpoint (or file path) containing  tally results from the chain, added to \"node-addr\"")
-		proposalsUrl    = flag.String("proposals", "/api/v0/proposals", "Endpoint (or file path) containing proposals, added to \"service-addr\"")
-		fundsUrl        = flag.String("funds", "/api/v0/fund", "Endpoint (or file path) containing fund info, added to \"service-addr\"")
-		timeout         = flag.String("http-timeout", "10s", "Http request timeout")
+		serviceUrl   = flag.String("service-addr", "https://servicing-station.vit.iohk.io", "Address of remote service, or file://")
+		nodeUrl      = flag.String("node-addr", "https://servicing-station.vit.iohk.io", "Address of remote service, or file://")
+		votePlansUrl = flag.String("vote-plans", "/api/v0/vote/active/plans", "Endpoint (or file path) containing  tally results from the chain, added to \"node-addr\"")
+		proposalsUrl = flag.String("proposals", "/api/v0/proposals", "Endpoint (or file path) containing proposals, added to \"service-addr\"")
+		fundsUrl     = flag.String("funds", "/api/v0/fund", "Endpoint (or file path) containing fund info, added to \"service-addr\"")
+		timeout      = flag.String("http-timeout", "10s", "Http request timeout")
+		// Flags - TallyResult file
 		tallyResultFile = flag.String("result-file", "TallyResult.csv", "File name of the output result")
+		// Flags - version info
+		version = flag.Bool("version", false, "Print current app version and build info")
 	)
 
 	flag.Parse()
+
+	// version info
+	if *version {
+		fmt.Printf("Version - %s\n", Version)
+		fmt.Printf("Commit  - %s\n", CommitHash)
+		fmt.Printf("Date    - %s\n", BuildDate)
+		os.Exit(0)
+	}
 
 	// Http timeout
 	timeoutDur, err := time.ParseDuration(*timeout)
@@ -230,6 +248,7 @@ func main() {
 			}
 		}
 	}
+
 	// TallyResult - dump
 	tallyFile, err := os.Create(*tallyResultFile)
 	kit.FatalOn(err, "tallyFile csv CREATE", *tallyResultFile)
