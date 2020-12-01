@@ -1,0 +1,69 @@
+[
+    {
+        "id": "2573f0af477fc1f68072e3a529275f63f9ce3b6f35348757bcea3e5670e5726a",
+        "payload": "public",
+        "vote_start": {
+            "epoch": 0,
+            "slot_id": 0
+        },
+        "vote_end": {
+            "epoch": 0,
+            "slot_id": 15
+        },
+        "committee_end": {
+            "epoch": 1,
+            "slot_id": 15
+        },
+        "committee_member_keys": [],
+        "proposals": [
+            {
+                "index": 0,
+                "proposal_id": "d7fa4e00e408751319c3bdb84e95fd0dcffb81107a2561e691c33c1ae635c2cd",
+                "options": {
+                    "start": 0,
+                    "end": 3
+                },
+                "tally": {
+                    "Public": {
+                        "result": {
+                            "results": [
+                                0,
+                                1,
+                                0
+                            ],
+                            "options": {
+                                "start": 0,
+                                "end": 3
+                            }
+                        }
+                    }
+                },
+                "votes_cast": 1
+            },
+            {
+                "index": 1,
+                "proposal_id": "a47fb2420f61532f5bc2739dc47e86293d26aaf718ed84dec2b1f9f91a6597c7",
+                "options": {
+                    "start": 0,
+                    "end": 3
+                },
+                "tally": {
+                    "Public": {
+                        "result": {
+                            "results": [
+                                0,
+                                0,
+                                1
+                            ],
+                            "options": {
+                                "start": 0,
+                                "end": 3
+                            }
+                        }
+                    }
+                },
+                "votes_cast": 1
+            }
+        ]
+    }
+]
