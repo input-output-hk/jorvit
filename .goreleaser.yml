@@ -44,6 +44,43 @@ builds:
     goarch:
       - amd64
 
+  - id: t-linux
+    ldflags: -s -w -X main.Version={{ .Version }} -X main.BuildDate={{ .Date }} -X main.CommitHash={{ .ShortCommit }}
+    binary: vitresult
+    main: ./cmd/vitresult/vitresult.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - arm
+  - id: t-darwin-amd64
+    ldflags: -s -w -X main.Version={{ .Version }} -X main.BuildDate={{ .Date }} -X main.CommitHash={{ .ShortCommit }}
+    binary: vitresult
+    main: ./cmd/vitresult/vitresult.go
+    env:
+      - CGO_ENABLED=0
+      # - CC=o64-clang
+      # - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+  - id: t-windows-amd64
+    ldflags: -s -w -X main.Version={{ .Version }} -X main.BuildDate={{ .Date }} -X main.CommitHash={{ .ShortCommit }}
+    binary: vitresult
+    main: ./cmd/vitresult/vitresult.go
+    env:
+      - CGO_ENABLED=0
+      # - CC=x86_64-w64-mingw32-gcc
+      # - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
     replacements:
