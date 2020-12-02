@@ -3,6 +3,7 @@ package datastore
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/input-output-hk/jorvit/internal/loader"
 )
@@ -48,7 +49,7 @@ func (b *Proposals) SearchID(internalID string) *loader.ProposalData {
 	ret := FilterSingle(
 		b.List,
 		func(v *loader.ProposalData) bool {
-			return v.InternalID == internalID
+			return strconv.FormatUint(v.InternalID, 10) == internalID
 		},
 	)
 	return ret

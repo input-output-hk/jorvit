@@ -1,0 +1,23 @@
+{
+  "id": 1,
+  "fund_name": "Fund2",
+  "fund_goal": "How will we encourage developers and entrepreneurs to build Dapps and businesses on top of Cardano in the next 6 months?",
+  "voting_power_info": "2020-11-30T20:57:04Z",
+  "voting_power_threshold": 8000000000,
+  "rewards_info": "2020-12-08T21:02:04Z",
+  "fund_start_time": "2020-11-30T20:57:04+00:00",
+  "fund_end_time": "2020-11-30T21:02:04+00:00",
+  "next_fund_start_time": "2020-12-31T00:00:00+00:00",
+  "chain_vote_plans": [
+    {
+      "id": 1,
+      "chain_voteplan_id": "2573f0af477fc1f68072e3a529275f63f9ce3b6f35348757bcea3e5670e5726a",
+      "chain_vote_start_time": "2020-11-30T20:57:04+00:00",
+      "chain_vote_end_time": "2020-11-30T21:02:04+00:00",
+      "chain_committee_end_time": "2020-12-01T21:02:04+00:00",
+      "chain_voteplan_payload": "public",
+      "chain_vote_encryption_key": "",
+      "fund_id": 1
+    }
+  ]
+}

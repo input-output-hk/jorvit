@@ -1,0 +1,78 @@
+[
+  {
+    "internal_id": 1,
+    "proposal_id": "16444246",
+    "proposal_category": {
+      "category_id": "",
+      "category_name": "Fund2 challenge",
+      "category_description": ""
+    },
+    "proposal_title": "Test proposal 16444246",
+    "proposal_summary": "To test the proposal process 16444246",
+    "proposal_problem": "We haven't tested proposal integration yet 16444246",
+    "proposal_solution": "Test the proposal integration process 16444246",
+    "proposal_public_key": "Ae2tdPwUPEYwrazXRJVK4NgHSZCjP9kLSMrx2awgYiBH61zT8kz6u33Sije",
+    "proposal_funds": 1000246000000,
+    "proposal_url": "https://iohk.submittable.com/submissions/16444246",
+    "proposal_files_url": "https://iohk.submittable.com/submissions/16444246/file/0",
+    "proposal_impact_score": 50,
+    "proposer": {
+      "proposer_name": "IOHK 16444246",
+      "proposer_email": "iohk_16444246@iohk.io",
+      "proposer_url": "https://iohk.io",
+      "proposer_relevant_experience": "IOHK 16444246 - relevant experience"
+    },
+    "chain_proposal_id": "d7fa4e00e408751319c3bdb84e95fd0dcffb81107a2561e691c33c1ae635c2cd",
+    "chain_proposal_index": 0,
+    "chain_vote_options": {
+      "blank": 0,
+      "yes": 1,
+      "no": 2
+    },
+    "chain_voteplan_id": "2573f0af477fc1f68072e3a529275f63f9ce3b6f35348757bcea3e5670e5726a",
+    "chain_vote_start_time": "2020-11-30T20:57:04+00:00",
+    "chain_vote_end_time": "2020-11-30T21:02:04+00:00",
+    "chain_committee_end_time": "2020-12-01T21:02:04+00:00",
+    "chain_voteplan_payload": "public",
+    "chain_vote_encryption_key": "",
+    "fund_id": 1
+  },
+  {
+    "internal_id": 2,
+    "proposal_id": "16444247",
+    "proposal_category": {
+      "category_id": "",
+      "category_name": "Fund2 challenge",
+      "category_description": ""
+    },
+    "proposal_title": "Test proposal 16444247",
+    "proposal_summary": "To test the proposal process 16444247",
+    "proposal_problem": "We haven't tested proposal integration yet 16444247",
+    "proposal_solution": "Test the proposal integration process 16444247",
+    "proposal_public_key": "Ae2tdPwUPEYwrazXRJVK4NgHSZCjP9kLSMrx2awgYiBH61zT8kz6u33Sije",
+    "proposal_funds": 1000247000000,
+    "proposal_url": "https://iohk.submittable.com/submissions/16444247",
+    "proposal_files_url": "https://iohk.submittable.com/submissions/16444247/file/0",
+    "proposal_impact_score": 150,
+    "proposer": {
+      "proposer_name": "IOHK 16444247",
+      "proposer_email": "iohk_16444247@iohk.io",
+      "proposer_url": "https://iohk.io",
+      "proposer_relevant_experience": "IOHK 16444247 - relevant experience"
+    },
+    "chain_proposal_id": "a47fb2420f61532f5bc2739dc47e86293d26aaf718ed84dec2b1f9f91a6597c7",
+    "chain_proposal_index": 1,
+    "chain_vote_options": {
+      "no": 2,
+      "yes": 1,
+      "blank": 0
+    },
+    "chain_voteplan_id": "2573f0af477fc1f68072e3a529275f63f9ce3b6f35348757bcea3e5670e5726a",
+    "chain_vote_start_time": "2020-11-30T20:57:04+00:00",
+    "chain_vote_end_time": "2020-11-30T21:02:04+00:00",
+    "chain_committee_end_time": "2020-12-01T21:02:04+00:00",
+    "chain_voteplan_payload": "public",
+    "chain_vote_encryption_key": "",
+    "fund_id": 1
+  }
+]

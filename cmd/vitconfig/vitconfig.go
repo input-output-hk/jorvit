@@ -666,7 +666,7 @@ func main() {
 		for i, proposal := range payloadProposals[pt] {
 
 			// tmp - hash the proposal (TODO: decide what to hash in production, file bytes ???)
-			externalID := blake2b.Sum256([]byte(proposal.Proposal.ID + proposal.InternalID + pt))
+			externalID := blake2b.Sum256([]byte(proposal.Proposal.ID + strconv.FormatUint(proposal.InternalID, 10) + pt))
 			proposal.ChainProposal.ExternalID = hex.EncodeToString(externalID[:])
 
 			// retrieve the voteplan internal index based on the proposal index we are at
