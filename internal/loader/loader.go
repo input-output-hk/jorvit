@@ -83,7 +83,7 @@ func (cvo *ChainVoteOptions) MarshalCSV() (string, error) {
 }
 
 type ChainVotePlan struct {
-	VpInternalID      string `json:"-"                        csv:"id"`
+	VpInternalID      string `json:"-"                         csv:"id"`
 	VotePlanID        string `json:"chain_voteplan_id"         csv:"chain_voteplan_id"`
 	VoteStart         string `json:"chain_vote_start_time"     csv:"chain_vote_start_time"`
 	VoteEnd           string `json:"chain_vote_end_time"       csv:"chain_vote_end_time"`
