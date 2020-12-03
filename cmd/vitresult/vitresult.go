@@ -83,6 +83,7 @@ type TallyOptions struct {
 
 type ProposalsResult struct {
 	loader.ProposalData
+	VotesCast uint `json:"votes_cast" csv:"votes_cast"`
 	TallyOptions
 }
 
@@ -201,7 +202,10 @@ func main() {
 					continue
 				}
 
-				// we should have only one payload
+				// set the number of votes casted, so it is available even when no tally yet
+				proposals[i].VotesCast = votePlans[x].Proposals[y].VotesCast
+
+				// we should have the tally done and only one payload
 				if len(votePlans[x].Proposals[y].Tally) != 1 {
 					continue
 				}
