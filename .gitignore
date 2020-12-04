@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+/jorvit
+/vitresult
 
 # Test binary, built with `go test -c`
 *.test
@@ -16,3 +18,4 @@
 
 # Local Folders
 build/
+/jnode_VIT_*/
