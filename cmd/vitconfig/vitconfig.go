@@ -68,13 +68,6 @@ type jcliVotePlan struct {
 	Certificate               string         `json:"-"`
 }
 
-type jcliChallenge struct {
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	RewardsTotal uint32 `json:"rewards_total"`
-	FundId       uint32 `json:"fund_id"`
-}
-
 type ChainTime struct {
 	Epoch  int64 `json:"epoch"`
 	SlotID int64 `json:"slot_id"`
