@@ -18,6 +18,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/input-output-hk/jorvit/pkg/vcli"
+	"github.com/input-output-hk/jorvit/pkg/vstation"
+
 	"github.com/gocarina/gocsv"
 	"github.com/input-output-hk/jorvit/internal/datastore"
 	"github.com/input-output-hk/jorvit/internal/kit"
@@ -25,8 +28,6 @@ import (
 	"github.com/input-output-hk/jorvit/internal/webproxy"
 	"github.com/rinor/jorcli/jcli"
 	"github.com/rinor/jorcli/jnode"
-	"github.com/rinor/vitcli/vcli"
-	"github.com/rinor/vitcli/vstation"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -50,9 +51,10 @@ type bftLeader struct {
 }
 
 type jcliProposal struct {
-	ExternalID string `json:"external_id"`
-	Options    uint8  `json:"options"`
-	Action     string `json:"action"`
+	ExternalID  string `json:"external_id"`
+	Options     uint8  `json:"options"`
+	Action      string `json:"action"`
+	Challengeid uint32 `json:"challenge_id"`
 }
 
 type jcliVotePlan struct {
@@ -64,6 +66,13 @@ type jcliVotePlan struct {
 	CommitteeMemberPublicKeys []string       `json:"committee_member_public_keys"` // privacy encyption keys
 	VotePlanID                string         `json:"-"`
 	Certificate               string         `json:"-"`
+}
+
+type jcliChallenge struct {
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	RewardsTotal uint32 `json:"rewards_total"`
+	FundId       uint32 `json:"fund_id"`
 }
 
 type ChainTime struct {
@@ -164,6 +173,7 @@ func main() {
 	// external proposal data
 	proposalsPath := flag.String("proposals", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"proposals.csv", "CSV full path (filename) to load PROPOSALS from")
 	fundsPath := flag.String("fund", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"fund.csv", "CSV full path (filename) to load FUND info from")
+	challengesPath := flag.String("challenges", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"challenges.csv", "CSV full path (filename) to load CHALLENGES info from")
 	genesisExtraDataPath := flag.String("genesis-extra-data", "."+string(os.PathSeparator)+"assets"+string(os.PathSeparator)+"extra_genesis_data.yaml", "YAML full path (filename) to load extra genesis funds from")
 
 	// vote and committee related timing
@@ -360,7 +370,8 @@ func main() {
 		log.Fatalf("[%s] - not provided", "proposals file")
 	case *fundsPath == "":
 		log.Fatalf("[%s] - not provided", "fund file")
-
+	case *challengesPath == "":
+		log.Fatalf("[%s] - not provided", "challenges file")
 	case *bftLeaderTot == 0:
 		log.Fatalf("[%s: %d] - wrong value", "bftLeaderTot", *bftLeaderTot)
 
@@ -852,9 +863,6 @@ func main() {
 	err = proposalsFile.Close()
 	kit.FatalOn(err, "Proposals csv CLOSE")
 
-	log.Printf("VIT - Station data are dumped at (%s)", vitStationDir)
-	log.Println()
-
 	block0Yaml, err := block0cfg.ToYaml()
 	kit.FatalOn(err)
 
@@ -1027,7 +1035,7 @@ func main() {
 		kit.FatalOn(err, "vcli.DbInit", kit.B2S(out))
 
 		// populate the database with already dumped data
-		out, err = vcli.CsvDataLoad(vitDb, fundsFile.Name(), proposalsFile.Name(), votePlansFile.Name())
+		out, err = vcli.CsvDataLoad(vitDb, fundsFile.Name(), proposalsFile.Name(), *challengesPath, votePlansFile.Name())
 		kit.FatalOn(err, "vcli.CsvDataLoad", kit.B2S(out))
 	}
 
