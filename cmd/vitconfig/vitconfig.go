@@ -54,7 +54,7 @@ type jcliProposal struct {
 	ExternalID  string `json:"external_id"`
 	Options     uint8  `json:"options"`
 	Action      string `json:"action"`
-	Challengeid uint32 `json:"challenge_id"`
+	ChallengeID uint32 `json:"challenge_id"`
 }
 
 type jcliVotePlan struct {
