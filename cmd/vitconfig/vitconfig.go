@@ -37,7 +37,7 @@ var (
 	CommitHash = "none"
 	BuildDate  = "unknown"
 
-	// memory sprocessing stores
+	// memory processing stores
 	proposals datastore.ProposalsStore
 	funds     datastore.FundsStore
 )
@@ -686,9 +686,10 @@ func main() {
 			jcliVotePlans[vpi].Proposals = append(
 				jcliVotePlans[vpi].Proposals,
 				jcliProposal{
-					ExternalID: proposal.ChainProposal.ExternalID,
-					Options:    uint8(len(proposal.ChainProposal.VoteOptions)),
-					Action:     proposal.VoteAction,
+					ExternalID:  proposal.ChainProposal.ExternalID,
+					Options:     uint8(len(proposal.ChainProposal.VoteOptions)),
+					Action:      proposal.VoteAction,
+					ChallengeID: proposal.ChallengeID,
 				},
 			)
 		}
