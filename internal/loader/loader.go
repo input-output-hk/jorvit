@@ -99,6 +99,7 @@ type ProposalData struct {
 	Proposal         //
 	Proposer         `json:"proposer"`
 	ChainProposal
+	ChallengeID uint32 `json:"challenge_id" csv:"challenge_id"`
 	*ChainVotePlan
 }
 
