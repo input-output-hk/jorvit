@@ -37,8 +37,8 @@ type Tally struct {
 
 type TallyResult struct {
 	Result struct {
-		Options VoteOption
-		Results []uint
+		Options VoteOption  `json:"options"`
+		Results []uint      `json:"results"`
 	}
 }
 
@@ -54,7 +54,7 @@ type VoteProposal struct {
 	Index      uint8       `json:"index"`
 	ProposalID string      `json:"proposal_id"`
 	Options    VoteOption  `json:"options"`
-	Tally
+	Tally                  `json:"tally"`
 	VotesCast  uint        `json:"votes_cast"`
 }
 
