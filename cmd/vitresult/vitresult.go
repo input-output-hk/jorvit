@@ -25,37 +25,45 @@ var (
 	BuildDate  = "unknown"
 )
 
-type ChainTime struct {
-	Epoch  int64 `json:"epoch"`
-	SlotID int64 `json:"slot_id"`
-}
-
 type VoteOption struct {
 	Start uint8 `json:"start"`
 	End   uint8 `json:"end"`
 }
 
-type TallyResult map[string]struct {
+type Tally struct {
+	Public struct { TallyResult }
+	Private struct { PrivateTallyResult }
+}
+
+type TallyResult struct {
 	Result struct {
-		Options VoteOption `json:"options"`
-		Results []uint     `json:"results"`
-	} `json:"result"`
+		Options VoteOption  `json:"options"`
+		Results []uint      `json:"results"`
+	}
+}
+
+type PrivateTallyResult struct {
+	State struct {
+		Decrypted struct {
+			TallyResult
+		}
+	}
 }
 
 type VoteProposal struct {
 	Index      uint8       `json:"index"`
 	ProposalID string      `json:"proposal_id"`
 	Options    VoteOption  `json:"options"`
-	Tally      TallyResult `json:"tally"`
+	Tally                  `json:"tally"`
 	VotesCast  uint        `json:"votes_cast"`
 }
 
 type VotePlans struct {
 	ID                  string         `json:"id"`
 	Payload             string         `json:"payload"`
-	VoteStart           ChainTime      `json:"vote_start"`
-	VoteEnd             ChainTime      `json:"vote_end"`
-	CommitteeEnd        ChainTime      `json:"committee_end"`
+	VoteStart           string         `json:"vote_start"`
+	VoteEnd             string         `json:"vote_end"`
+	CommitteeEnd        string         `json:"committee_end"`
 	CommitteeMemberKeys []string       `json:"committee_member_keys"`
 	Proposals           []VoteProposal `json:"proposals"`
 }
@@ -134,6 +142,46 @@ func httpGet(client *http.Client, u string) ([]byte, error) {
 	return data, nil
 }
 
+func getTallyResults(tally TallyResult, proposal *ProposalsResult) {
+	for r, tr := range tally.Result.Results {
+		switch r {
+		// TODO: this is ...
+		case 0:
+			proposal.TallyOptions.Tally00 = tr
+		case 1:
+			proposal.TallyOptions.Tally01 = tr
+		case 2:
+			proposal.TallyOptions.Tally02 = tr
+		case 3:
+			proposal.TallyOptions.Tally03 = tr
+		case 4:
+			proposal.TallyOptions.Tally04 = tr
+		case 5:
+			proposal.TallyOptions.Tally05 = tr
+		case 6:
+			proposal.TallyOptions.Tally06 = tr
+		case 7:
+			proposal.TallyOptions.Tally07 = tr
+		case 8:
+			proposal.TallyOptions.Tally08 = tr
+		case 9:
+			proposal.TallyOptions.Tally09 = tr
+		case 10:
+			proposal.TallyOptions.Tally10 = tr
+		case 11:
+			proposal.TallyOptions.Tally11 = tr
+		case 12:
+			proposal.TallyOptions.Tally12 = tr
+		case 13:
+			proposal.TallyOptions.Tally13 = tr
+		case 14:
+			proposal.TallyOptions.Tally14 = tr
+		case 15:
+			proposal.TallyOptions.Tally15 = tr
+		}
+	}
+}
+
 func main() {
 	var (
 		// Http
@@ -205,50 +253,9 @@ func main() {
 				// set the number of votes casted, so it is available even when no tally yet
 				proposals[i].VotesCast = votePlans[x].Proposals[y].VotesCast
 
-				// we should have the tally done and only one payload
-				if len(votePlans[x].Proposals[y].Tally) != 1 {
-					continue
-				}
-
-				for _, res := range votePlans[x].Proposals[y].Tally {
-					for r, tr := range res.Result.Results {
-						switch r {
-						// TODO: this is ...
-						case 0:
-							proposals[i].TallyOptions.Tally00 = tr
-						case 1:
-							proposals[i].TallyOptions.Tally01 = tr
-						case 2:
-							proposals[i].TallyOptions.Tally02 = tr
-						case 3:
-							proposals[i].TallyOptions.Tally03 = tr
-						case 4:
-							proposals[i].TallyOptions.Tally04 = tr
-						case 5:
-							proposals[i].TallyOptions.Tally05 = tr
-						case 6:
-							proposals[i].TallyOptions.Tally06 = tr
-						case 7:
-							proposals[i].TallyOptions.Tally07 = tr
-						case 8:
-							proposals[i].TallyOptions.Tally08 = tr
-						case 9:
-							proposals[i].TallyOptions.Tally09 = tr
-						case 10:
-							proposals[i].TallyOptions.Tally10 = tr
-						case 11:
-							proposals[i].TallyOptions.Tally11 = tr
-						case 12:
-							proposals[i].TallyOptions.Tally12 = tr
-						case 13:
-							proposals[i].TallyOptions.Tally13 = tr
-						case 14:
-							proposals[i].TallyOptions.Tally14 = tr
-						case 15:
-							proposals[i].TallyOptions.Tally15 = tr
-						}
-					}
-				}
+				// we will only have one of private or public tallies at a time
+				getTallyResults(votePlans[x].Proposals[y].Tally.Public.TallyResult, &proposals[i])
+				getTallyResults(votePlans[x].Proposals[y].Tally.Private.State.Decrypted.TallyResult, &proposals[i])
 			}
 		}
 	}
